@@ -1,0 +1,28 @@
+version = "0.1.0"
+
+# ordered lifecycle steps
+steps = [
+  "01-idea",
+  "02-prd",
+  "03-prd-plus",
+  "04-architecture",
+  "05-system-patterns",
+  "06-tasks",
+  "07-tests",
+  "08-release-plan",
+  "09-retro"
+]
+
+slug_rule    = "kebab-case"
+template_dir = "templates"
+prompt_dir   = "prompts"
+active_dir   = "doing"
+done_dir     = "done"
+
+[mermaid]
+graph = """
+flowchart TD
+  I[01-idea]-->P1[02-prd]-->P2[03-prd-plus]-->A[04-architecture]
+  A-->SP[05-system-patterns]-->T[06-tasks]-->TESTS[07-tests]
+  TESTS-->RL[08-release-plan]-->R[09-retro]
+"""
