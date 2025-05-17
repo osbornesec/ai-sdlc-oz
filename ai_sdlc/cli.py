@@ -1,19 +1,39 @@
 #!/usr/bin/env python
-import sys
+"""Entry-point for the `aisdlc` CLI."""
 
-def main() -> None:
+from __future__ import annotations
+
+import sys
+from importlib import import_module
+from typing import Callable, Dict
+
+_COMMANDS: Dict[str, str] = {
+    "init": "ai_sdlc.commands.init:run_init",
+    "new": "ai_sdlc.commands.new:run_new",
+    "next": "ai_sdlc.commands.next:run_next",
+    "status": "ai_sdlc.commands.status:run_status",
+    "done": "ai_sdlc.commands.done:run_done",
+}
+
+
+def _resolve(dotted: str) -> Callable[..., None]:
+    """Import `"module:function"` and return the function object."""
+    module_name, func_name = dotted.split(":")
+    module = import_module(module_name)
+    return getattr(module, func_name)
+
+
+def main() -> None:  # noqa: D401
+    """Run the requested sub-command."""
     cmd, *args = sys.argv[1:] or ["--help"]
-    if cmd == "init":
-        from .commands.init import run_init
-        run_init()
-    elif cmd == "new":
-        from .commands.new import run_new
-        run_new(args)
-    elif cmd == "next":
-        from .commands.next import run_next
-        run_next()
-    elif cmd == "done":
-        from .commands.done import run_done
-        run_done()
-    else:
-        print("Usage: aisdlc [init|new|next|done]")
+    if cmd not in _COMMANDS:
+        valid = "|".join(_COMMANDS.keys())
+        print(f"Usage: aisdlc [{valid}]")
+        sys.exit(1)
+
+    handler = _resolve(_COMMANDS[cmd])
+    handler(args) if args else handler()
+
+
+if __name__ == "__main__":
+    main()
