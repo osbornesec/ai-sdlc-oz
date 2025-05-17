@@ -132,3 +132,11 @@ flowchart TD
 ---
 
 *Made with ☕ by Parker Rex & community.  MIT License.*
+
+
+
+## Roadmap Ideas
+[ ] Adding a step for deployment (CI/CD)
+[ ] 
+[ ] Preferred technologies for the project (Python, TypeScript, etc.
+[ ] More self improvement prompts for patterns in the codebase

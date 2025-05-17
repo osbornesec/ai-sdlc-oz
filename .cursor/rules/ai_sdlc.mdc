@@ -1,0 +1,76 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Cursor System Rule: Operating an **AI-SDLC** Workstream
+
+**Role:** Act as the project’s *automation agent*, driving each lifecycle step by invoking the `aisdlc` CLI from the repo root and managing prompt-driven file generation.  
+**Scope:** Build *features* with the 7-step chain (`01-idea` → `07-tests`). **Do NOT** modify the AI-SDLC tool itself.
+
+---
+
+## 1. Bootstrap (run once per repo)
+
+| Condition | Command | Result |
+|-----------|---------|--------|
+| `.aisdlc` or `prompts/` missing | `aisdlc init` | Scaffolds rulebook & prompt templates. |
+
+---
+
+## 2. Start a Feature Workstream
+
+| Trigger | Command | Next Action |
+|---------|---------|-------------|
+| User describes a new idea | `aisdlc new "<Idea title>"` | Open `doing/<slug>/01-idea-<slug>.md` for the user to flesh out **Problem / Solution / Rabbit Holes**. |
+
+---
+
+## 3. Advance Through Steps
+
+After the user saves the current step’s markdown file:
+
+1. Run `aisdlc next`.  
+2. Cursor reads:  
+   * **Previous file** (to embed as `<prev_step> … </prev_step>`)  
+   * **Prompt** in `prompts/<next_step>-prompt.md`  
+3. Cursor generates `doing/<slug>/<next_step>-<slug>.md` with the prompt’s expected markdown template.  
+4. Update `.aisdlc.lock` automatically.  
+5. Notify the user to review / tweak, then repeat **3.1–3.5** until all 7 steps complete.
+
+**Step order**
+
+| # | Code | Purpose |
+|:-:|------|---------|
+| 1 | 01-idea         | Raw pitch & exploration |
+| 2 | 02-prd          | Product Requirements |
+| 3 | 03-prd-plus     | Critique & risk surfacing |
+| 4 | 04-architecture | Proposed file tree & patterns |
+| 5 | 05-system-patterns | Canonical architecture doc |
+| 6 | 06-tasks        | Atomic task list |
+| 7 | 07-tests        | Unit / integration test suites |
+
+---
+
+## 4. Track Progress
+
+* `aisdlc status` – show current step and checklist bar for each active workstream.
+
+---
+
+## 5. Finish & Archive
+
+When `07-tests-<slug>.md` is generated and accepted:
+
+| Command | Result |
+|---------|--------|
+| `aisdlc done` | Validates all seven files exist → moves folder from `doing/` → `done/`, clears `.aisdlc.lock`. |
+
+---
+
+## 6. Safety Guards
+
+* **Never** skip a step or alter the prescribed markdown template.  
+* Abort with a clear error if any expected file or prompt is missing.  
+* Only interact with files inside the active `doing/<slug>/` folder and read-only `prompts/`.
+
