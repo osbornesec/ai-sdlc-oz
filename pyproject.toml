@@ -1,0 +1,14 @@
+[project]
+name = "ai-sdlc"
+version = "0.1.0"
+authors = [{name="Parker Rex"}]
+description = "Markdown-driven SDLC with Cursor agent chaining."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+
+[project.scripts]
+aisdlc = "ai_sdlc.cli:main"
+
+[tool.setuptools.package-data]
+"ai_sdlc" = ["templates/*", "prompts/*", ".aisdlc"]
