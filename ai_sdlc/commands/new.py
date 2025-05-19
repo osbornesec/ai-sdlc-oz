@@ -23,17 +23,21 @@ def run_new(args: list[str]) -> None:
         print(f"❌  Work-stream '{slug}' already exists.")
         sys.exit(1)
 
-    workdir.mkdir(parents=True)
-    idea_file = workdir / f"01-idea-{slug}.md"
-    idea_file.write_text(
-        f"# {idea_text}\n\n## Problem\n\n## Solution\n\n## Rabbit Holes\n",
-    )
+    try:
+        workdir.mkdir(parents=True)
+        idea_file = workdir / f"01-idea-{slug}.md"
+        idea_file.write_text(
+            f"# {idea_text}\n\n## Problem\n\n## Solution\n\n## Rabbit Holes\n",
+        )
 
-    write_lock(
-        {
-            "slug": slug,
-            "current": "01-idea",
-            "created": datetime.datetime.utcnow().isoformat(),
-        },
-    )
-    print(f"✅  Created {idea_file}.  Fill it out, then run `aisdlc next`.")
+        write_lock(
+            {
+                "slug": slug,
+                "current": "01-idea",
+                "created": datetime.datetime.utcnow().isoformat(),
+            },
+        )
+        print(f"✅  Created {idea_file}.  Fill it out, then run `aisdlc next`.")
+    except OSError as e:
+        print(f"❌  Error creating work-stream files for '{slug}': {e}")
+        sys.exit(1)

@@ -1,5 +1,6 @@
 """`aisdlc done` – validate finished stream and archive it."""
 
+import sys
 import shutil
 from pathlib import Path
 
@@ -22,6 +23,10 @@ def run_done() -> None:
         print("❌  Missing files:", ", ".join(missing))
         return
     dest = ROOT / conf["done_dir"] / slug
-    shutil.move(str(workdir), dest)
-    write_lock({})
-    print(f"🎉  Archived to {dest}")
+    try:
+        shutil.move(str(workdir), dest)
+        write_lock({})
+        print(f"🎉  Archived to {dest}")
+    except OSError as e:
+        print(f"❌  Error archiving work-stream '{slug}': {e}")
+        sys.exit(1)

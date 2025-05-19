@@ -18,7 +18,7 @@ Then you will steelman the solution and come up potential improvements.
 
 Lastly you will ask if there are any open questions that you think are worth exploring.
 
-Expectted output:
+Expected output:
 
 ```` markdown
 # Analysis of [Pitch Name]
