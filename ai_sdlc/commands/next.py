@@ -10,7 +10,7 @@ from pathlib import Path
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
 # Define a reasonable timeout for cursor agent calls
-CURSOR_AGENT_TIMEOUT = 300  # 5 minutes in seconds
+CURSOR_AGENT_TIMEOUT = 45  # 5 minutes in seconds
 
 PLACEHOLDER = "<prev_step></prev_step>"
 
@@ -48,7 +48,7 @@ def run_next() -> None:
     prev_step_content = prev_file.read_text()
     print(f"ℹ️  Reading prompt template from: {prompt_file}")
     prompt_template_content = prompt_file.read_text()
-    
+
     merged_prompt = prompt_template_content.replace(PLACEHOLDER, prev_step_content)
     tmp_prompt_path_str = None  # Initialize for finally block
     try:
@@ -64,14 +64,16 @@ def run_next() -> None:
                 text=True,
                 timeout=CURSOR_AGENT_TIMEOUT,
             )
-    except subprocess.CalledProcessError as e:
-        print(f"❌  Cursor agent failed with exit code {e.returncode}.")
-        if e.stdout: print(f"Stdout:\n{e.stdout}")
-        if e.stderr: print(f"Stderr:\n{e.stderr}")
-        sys.exit(1)
-    except subprocess.TimeoutExpired:
-        print(f"❌  Cursor agent timed out after {CURSOR_AGENT_TIMEOUT} seconds.")
-        sys.exit(1)
+        except subprocess.CalledProcessError as e:
+            print(f"❌  Cursor agent failed with exit code {e.returncode}.")
+            if e.stdout:
+                print(f"Stdout:\n{e.stdout}")
+            if e.stderr:
+                print(f"Stderr:\n{e.stderr}")
+            sys.exit(1)
+        except subprocess.TimeoutExpired:
+            print(f"❌  Cursor agent timed out after {CURSOR_AGENT_TIMEOUT} seconds.")
+            sys.exit(1)
     finally:
         if tmp_prompt_path_str and Path(tmp_prompt_path_str).exists():
             Path(tmp_prompt_path_str).unlink()

@@ -1,6 +1,6 @@
 # AI SDLC — README
 
-> **Version 0.3.0 (2025‑07‑21)** — Python 3.13 · `uv`‑first install · 7‑step lifecycle · Improved error handling & testing
+> **Version 0.3.0 (2025‑05‑19)** — Python 3.13 · `uv`‑first install · 7‑step lifecycle · Improved error handling & testing
 
 ---
 
@@ -247,6 +247,7 @@ flowchart TD
 *   [ ] Adding a step for deployment/infrastructure (CI/CD).
 *   [ ] Think about repomix as part of the flow.
 *   [ ] Add prompt for actually doing the tasks (should check against the token limit).
+*   [ ] Add challenger LLM as an option for certain parts of the workflow. Challenger enable, challenger, model select.
 *   [ ] Preferred technologies for the project (Python, TypeScript, etc.).
 *   [ ] More self improvement prompts for patterns in the codebase.
 *   [ ] Re-evaluate incorporating a "08-release-plan" step for outlining deployment strategy, versioning, and communication.
