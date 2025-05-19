@@ -38,11 +38,17 @@ def run_next() -> None:
     next_file   = workdir / f"{next_step}-{slug}.md"
 
     if not prev_file.exists():
-        print(f"❌  Expected file {prev_file} not found.")
-        return
+        print(f"❌ Error: The previous step's output file '{prev_file}' is missing.")
+        print(f"   This file is required as input to generate the '{next_step}' step.")
+        print("   Please restore this file (e.g., from version control) or ensure it was correctly generated.")
+        print(f"   If you need to restart the '{prev_step}', you might need to adjust '.aisdlc.lock' or re-run the command that generates '{prev_step}'.")
+        sys.exit(1)  # Make it a harder exit
     if not prompt_file.exists():
-        print(f"❌  Prompt file {prompt_file} missing.")
-        return
+        print(f"❌ Critical Error: Prompt template file '{prompt_file}' is missing.")
+        print(f"   This file is essential for generating the '{next_step}' step.")
+        print(f"   Please ensure it exists in your '{conf['prompt_dir']}/' directory.")
+        print("   You may need to restore it from version control or your initial 'aisdlc init' setup.")
+        sys.exit(1) # Make it a harder exit
 
     print(f"ℹ️  Reading previous step from: {prev_file}")
     prev_step_content = prev_file.read_text()

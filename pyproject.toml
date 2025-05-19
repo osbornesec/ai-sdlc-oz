@@ -43,6 +43,6 @@ packages = ["ai_sdlc"]                    # only ship the main package
 # ────────────────────────────────────────────────────────────────
 #  uv configuration
 # ────────────────────────────────────────────────────────────────
-[tool.uv]
-virtualenvs.in-project = true   # create .venv in repo root
-sync.subprocesses      = true   # allow post-install hooks
+# [tool.uv]
+# virtualenvs.in-project = true   # create .venv in repo root
+# sync.subprocesses      = true   # allow post-install hooks
