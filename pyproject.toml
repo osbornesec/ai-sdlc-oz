@@ -3,42 +3,33 @@
 # ────────────────────────────────────────────────────────────────
 
 [build-system]
-requires      = ["setuptools>=68.0", "wheel"]          # modern setuptools
+requires = ["setuptools>=68.0", "wheel"] # modern setuptools
 build-backend = "setuptools.build_meta"
 
 # ────────────────────────────────────────────────────────────────
 [project]
-name            = "ai-sdlc"
-version         = "0.3.0"
-description     = "Markdown-driven SDLC with Cursor agent chaining."
-readme          = "README.md"
-authors         = [{ name = "Parker Rex" }]
-license         = { text = "MIT" }
-requires-python = ">=3.13.0"              # ⬅ Python 3.13
+name = "ai-sdlc"
+version = "0.3.0"
+description = "Markdown-driven SDLC with Cursor agent chaining."
+readme = "README.md"
+authors = [{ name = "Parker Rex" }]
+license = { text = "MIT" }
+requires-python = ">=3.13.0"                                     # ⬅ Python 3.13
 
 [project.scripts]
 aisdlc = "ai_sdlc.cli:main"
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=7.0",
-    "pytest-mock>=3.0",
-    "ruff>=0.0.292",
-    "pyright>=1.1.350"
-]
+dev = ["pytest>=7.0", "pytest-mock>=3.0", "ruff>=0.0.292", "pyright>=1.1.350"]
 
 # ────────────────────────────────────────────────────────────────
 #  Packaging tweaks
 # ────────────────────────────────────────────────────────────────
 [tool.setuptools]
-packages = ["ai_sdlc"]                    # only ship the main package
+packages = ["ai_sdlc"] # only ship the main package
 
 [tool.setuptools.package-data]
-"ai_sdlc" = [
-    "templates/*",
-    "prompts/*",
-    ".aisdlc"
-]
+"ai_sdlc" = ["scaffold_template/.aisdlc", "scaffold_template/prompts/*.md"]
 
 # ────────────────────────────────────────────────────────────────
 #  uv configuration

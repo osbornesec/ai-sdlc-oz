@@ -15,6 +15,15 @@ All notable changes to the `ai-sdlc` project will be documented in this file.
   - Comprehensive file I/O error handling in all commands
   - Lock file corruption handling (gracefully handles invalid JSON)
   - Config file corruption handling (shows helpful error for invalid TOML)
+- **Enhanced `aisdlc init` command:**
+  - Now scaffolds a default `.aisdlc` configuration file into the new project.
+  - Automatically creates a `prompts/` directory populated with default prompt templates for all 7 SDLC steps.
+  - Displays a comprehensive and styled welcome message upon initialization, including:
+    - An ASCII art logo for "AI-SDLC".
+    - A brief explanation of how AI-SDLC works.
+    - A guide on understanding the compact status bar shown after commands.
+    - Quick "Getting Started" instructions for the main workflow (`new`, `next`, `done`).
+- Packaged default `.aisdlc` configuration and all prompt templates within the `ai-sdlc` distribution, ensuring `init` can robustly scaffold new projects.
 
 ### Changed
 - Improved temporary file handling in `next` command
