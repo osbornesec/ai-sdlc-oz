@@ -3,6 +3,10 @@
 
 <p align="center"><code>uv pip install ai-sdlc</code></p>
 
+<p align="center">
+  <img src="./.github/github.png" alt="AI-SDLC GitHub" width="600">
+</p>
+
 ![demo gif showing: aisdlc new → next → done](./.github/demo.gif)
 
 ---
