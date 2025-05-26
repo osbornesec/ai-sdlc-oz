@@ -5,7 +5,7 @@ All notable changes to the `ai-sdlc` project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] - 2025-01-XX
+## [0.3.0] - 2025-01-15
 
 ### Overview
 Version 0.3.0 brings significant improvements to error handling, security, and overall robustness of the tool. This release also introduces a comprehensive testing framework to ensure stability as the project evolves.
