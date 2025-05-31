@@ -47,6 +47,8 @@ def mock_cursor_agent(mocker):
                 mock_output = "# Mock PRD Content\n\n## Overview\n\nThis is a mock PRD for testing."
             elif "03-prd-plus-prompt.md" in prompt_content:
                 mock_output = "# Mock PRD Plus Content\n\n## Additional Details\n\nThis is a mock PRD+ for testing."
+            elif "07-tasks-plus-prompt.md" in prompt_content:
+                mock_output = "# Mock Tasks Plus Content\n\n## Review Summary\n\nThis is a mock tasks review for testing."
             # Add more conditions for other steps if needed
         except (IndexError, FileNotFoundError):
             # Fallback to generic if prompt file can't be read or path is unexpected
