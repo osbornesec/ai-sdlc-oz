@@ -24,9 +24,9 @@ This tool helps you manage your software development lifecycle with AI assistanc
 HOW_IT_WORKS = """
 How AI-SDLC Works:
 ------------------
-*   AI-SDLC guides you through a structured 7-step feature development process.
+*   AI-SDLC guides you through a structured 8-step feature development process.
 *   Each step generates a Markdown file (e.g., for ideas, PRDs, architecture).
-*   The `aisdlc next` command uses an AI (Cursor Agent) to help generate content for these files.
+*   The `aisdlc next` command uses an AI agent to help generate content for these files.
 *   This keeps your development process organized, documented, and version-controlled.
 """
 
@@ -58,7 +58,7 @@ Getting Started:
 
 4.  Review and edit the newly generated Markdown file for the current step.
 
-5.  Repeat steps 3 and 4 until all 7 steps are completed.
+5.  Repeat steps 3 and 4 until all 8 steps are completed.
 
 6.  Archive your feature:
     `aisdlc done`
@@ -74,7 +74,8 @@ PROMPT_FILE_NAMES = [
     "04-architecture-prompt.md",
     "05-system-patterns.md",
     "06-tasks-prompt.md",
-    "07-tests.md",
+    "07-tasks-plus-prompt.md",
+    "08-tests.md",
 ]
 
 

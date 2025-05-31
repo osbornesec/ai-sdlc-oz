@@ -8,7 +8,8 @@ steps = [
   "04-architecture",
   "05-system-patterns",
   "06-tasks",
-  "07-tests"
+  "07-tasks-plus",
+  "08-tests"
 ]
 
 slug_rule    = "kebab-case"
@@ -21,5 +22,23 @@ done_dir     = "done"
 graph = """
 flowchart TD
   I[01-idea]-->P1[02-prd]-->P2[03-prd-plus]-->A[04-architecture]
-  A-->SP[05-system-patterns]-->T[06-tasks]-->TESTS[07-tests]
+  A-->SP[05-system-patterns]-->T[06-tasks]-->TP[07-tasks-plus]-->TESTS[08-tests]
+
+  %% Iteration loop for steps 1-5
+  CHAT[💬 Iterate with AI Chat]
+  I -.-> CHAT
+  P1 -.-> CHAT
+  P2 -.-> CHAT
+  A -.-> CHAT
+  SP -.-> CHAT
+  CHAT -.-> I
+  CHAT -.-> P1
+  CHAT -.-> P2
+  CHAT -.-> A
+  CHAT -.-> SP
+
+  %% Agent mode for steps 7-8
+  AGENT[🤖 Use AI Agent Mode]
+  TP --- AGENT
+  TESTS --- AGENT
 """
