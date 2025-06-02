@@ -3,119 +3,119 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write
-  id-token: write  # Required for PyPI trusted publishing
+  id-token: write # Required for PyPI trusted publishing
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
 
-    - name: Set up Python
-      run: uv python install 3.11
+      - name: Set up Python
+        run: uv python install 3.11
 
-    - name: Install dependencies
-      run: |
-        uv sync --all-extras --dev
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev
 
-    - name: Run tests
-      run: |
-        uv run pytest tests/ -v
+      - name: Run tests
+        run: |
+          uv run pytest tests/ -v
 
-    - name: Run integration tests
-      run: |
-        uv run pytest tests/integration/ -v
+      - name: Run integration tests
+        run: |
+          uv run pytest tests/integration/ -v
 
   build:
     needs: test
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        version: "latest"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
 
-    - name: Set up Python
-      run: uv python install 3.11
+      - name: Set up Python
+        run: uv python install 3.11
 
-    - name: Install dependencies
-      run: |
-        uv sync --all-extras --dev
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras --dev
 
-    - name: Build package
-      run: |
-        uv build
+      - name: Build package
+        run: |
+          uv build
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist
-        path: dist/
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
   publish-pypi:
     needs: build
     runs-on: ubuntu-latest
-    environment: release
+    # environment: release  # Uncomment when GitHub environment is created
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: dist/
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        print-hash: true
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true
 
   create-github-release:
     needs: [build, publish-pypi]
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Download build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: dist
-        path: dist/
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
 
-    - name: Extract version from tag
-      id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-    - name: Extract changelog for this version
-      id: changelog
-      run: |
-        # Extract the changelog section for this version
-        VERSION="${{ steps.version.outputs.VERSION }}"
-        awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.md
-        
-        # If no specific version found, use a generic message
-        if [ ! -s release_notes.md ]; then
-          echo "Release $VERSION" > release_notes.md
-          echo "" >> release_notes.md
-          echo "See [CHANGELOG.md](CHANGELOG.md) for details." >> release_notes.md
-        fi
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          # Extract the changelog section for this version
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          awk "/^## \[$VERSION\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.md
 
-    - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        files: dist/*
-        body_path: release_notes.md
-        draft: false
-        prerelease: false
-        generate_release_notes: true
+          # If no specific version found, use a generic message
+          if [ ! -s release_notes.md ]; then
+            echo "Release $VERSION" > release_notes.md
+            echo "" >> release_notes.md
+            echo "See [CHANGELOG.md](CHANGELOG.md) for details." >> release_notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true

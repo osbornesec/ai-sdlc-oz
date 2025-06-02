@@ -5,6 +5,7 @@ This document explains how to set up automated PyPI publishing for the AI-SDLC p
 ## Overview
 
 The project uses GitHub Actions to automatically:
+
 1. Run tests on every push and PR
 2. Build and publish to PyPI when a new tag is created
 3. Create GitHub releases with changelog notes
@@ -26,14 +27,17 @@ To enable automatic PyPI publishing, you need to configure PyPI Trusted Publishi
    - **Owner**: `ParkerRex` (or your GitHub username)
    - **Repository name**: `ai-sdlc`
    - **Workflow name**: `release.yml`
-   - **Environment name**: `release`
+   - **Environment name**: `release` (optional - see note below)
 
-### 3. Create GitHub Environment
+### 3. Create GitHub Environment (Optional)
+
+**Note**: The environment is currently commented out in the workflow to avoid validation errors. You can enable it later for additional security.
 
 1. Go to your GitHub repository settings
 2. Navigate to "Environments"
 3. Create a new environment named `release`
 4. Add protection rules if desired (e.g., require manual approval)
+5. Uncomment the `environment: release` line in `.github/workflows/release.yml`
 
 ## How It Works
 
@@ -64,7 +68,7 @@ To create a new release:
 1. **Update version** in `pyproject.toml` and `ai_sdlc/__init__.py`
 2. **Update CHANGELOG.md** with new version notes
 3. **Commit changes**: `git commit -m "chore: bump version to X.Y.Z"`
-4. **Create and push tag**: 
+4. **Create and push tag**:
    ```bash
    git tag -a vX.Y.Z -m "Release vX.Y.Z: Description"
    git push origin vX.Y.Z
@@ -78,22 +82,26 @@ To create a new release:
 ## Local Development
 
 Install development dependencies:
+
 ```bash
 uv sync --all-extras --dev
 ```
 
 Run tests:
+
 ```bash
 uv run pytest
 ```
 
 Run linting:
+
 ```bash
 uv run ruff check .
 uv run ruff format .
 ```
 
 Build package locally:
+
 ```bash
 uv build
 ```
