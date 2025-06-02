@@ -3,8 +3,8 @@
 # ────────────────────────────────────────────────────────────────
 
 [build-system]
-requires = ["setuptools>=68.0", "wheel"] # modern setuptools
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 # ────────────────────────────────────────────────────────────────
 [project]
@@ -51,19 +51,93 @@ Changelog = "https://github.com/ParkerRex/ai-sdlc/blob/main/CHANGELOG.md"
 aisdlc = "ai_sdlc.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "pytest-mock>=3.0", "ruff>=0.0.292", "pyright>=1.1.350"]
+dev = [
+    # Testing
+    "pytest>=7.0",
+    "pytest-mock>=3.0",
+    "pytest-cov>=4.0",
+    "pytest-asyncio>=0.21.0",
+
+    # Code quality
+    "ruff>=0.0.292",
+    "mypy>=1.0",
+    "pyright>=1.1.350",
+
+    # Security
+    "bandit>=1.7.0",
+    "safety>=2.0.0",
+
+    # Build tools
+    "build>=0.10.0",
+    "twine>=4.0.0",
+]
 
 # ────────────────────────────────────────────────────────────────
 #  Packaging tweaks
 # ────────────────────────────────────────────────────────────────
-[tool.setuptools]
-packages = ["ai_sdlc", "ai_sdlc.commands"] # ship main package and subpackages
+[tool.hatch.build.targets.wheel]
+packages = ["ai_sdlc"]
 
-[tool.setuptools.package-data]
-"ai_sdlc" = [
-    "scaffold_template/.aisdlc",
-    "scaffold_template/prompts/*.prompt.yml",
+[tool.hatch.build.targets.wheel.shared-data]
+"ai_sdlc/scaffold_template" = "ai_sdlc/scaffold_template"
+
+# ────────────────────────────────────────────────────────────────
+#  Tool Configuration
+# ────────────────────────────────────────────────────────────────
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = ["--strict-markers", "--strict-config", "--verbose"]
+markers = [
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "C901", # too complex
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["B011"]
+
+[tool.mypy]
+python_version = "3.11"
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101"]         # Skip assert_used test
 
 # ────────────────────────────────────────────────────────────────
 #  uv configuration

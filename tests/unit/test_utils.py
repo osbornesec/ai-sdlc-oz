@@ -1,7 +1,10 @@
-import pytest
 import json
 from pathlib import Path
+
+import pytest
+
 from ai_sdlc import utils
+
 
 def test_slugify():
     assert utils.slugify("Hello World!") == "hello-world"

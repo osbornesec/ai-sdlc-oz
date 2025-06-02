@@ -1,10 +1,10 @@
 """`aisdlc done` – validate finished stream and archive it."""
 
-import sys
 import shutil
-from pathlib import Path
+import sys
 
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
+
 
 def run_done() -> None:
     conf  = load_config()

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import json
 import re
 import sys
 import unicodedata
+from pathlib import Path
+
 
 def find_project_root() -> Path:
     """Find project root by searching for .aisdlc file in current and parent directories."""
@@ -24,7 +25,7 @@ ROOT = find_project_root()
 try:
     import tomllib as _toml  # Python 3.11+
 except ModuleNotFoundError:  # pragma: no cover – fallback for < 3.11
-    import tomli as _toml    # noqa: D401  # `uv pip install tomli`
+    import tomli as _toml  # noqa: D401  # `uv pip install tomli`
 
 
 def load_config() -> dict:

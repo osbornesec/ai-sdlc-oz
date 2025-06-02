@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import os
 import sys
-import tempfile
-from pathlib import Path
 
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
@@ -68,7 +65,7 @@ def run_next() -> None:
     print("    • Use with any other AI-powered editor or CLI tool")
     print()
     print(f"⏭️   After saving the AI response, the next step file should be: {next_file}")
-    print(f"    Once ready, run 'aisdlc next' again to continue to the next step.")
+    print("    Once ready, run 'aisdlc next' again to continue to the next step.")
 
     # Check if the user has already created the next step file
     if next_file.exists():

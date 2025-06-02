@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import datetime
 import sys
-from pathlib import Path
 
-from ai_sdlc.utils import ROOT, slugify, write_lock, load_config
+from ai_sdlc.utils import ROOT, load_config, slugify, write_lock
 
 
 def run_new(args: list[str]) -> None:

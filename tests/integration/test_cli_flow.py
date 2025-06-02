@@ -2,8 +2,6 @@ import json
 import subprocess
 from pathlib import Path
 
-import pytest
-
 # This assumes 'aisdlc' is installed and in PATH, or you can call it via 'python -m ai_sdlc.cli'
 AISDLC_CMD = ["aisdlc"]  # Or ["python", "-m", "ai_sdlc.cli"]
 

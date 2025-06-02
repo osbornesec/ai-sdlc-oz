@@ -4,11 +4,12 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Callable
 from importlib import import_module
-from typing import Callable, Dict
-from .utils import read_lock, load_config  # Added for status display
 
-_COMMANDS: Dict[str, str] = {
+from .utils import load_config, read_lock  # Added for status display
+
+_COMMANDS: dict[str, str] = {
     "init": "ai_sdlc.commands.init:run_init",
     "new": "ai_sdlc.commands.new:run_new",
     "next": "ai_sdlc.commands.next:run_next",
@@ -59,7 +60,7 @@ def main() -> None:  # noqa: D401
 
     handler = _resolve(_COMMANDS[cmd])
     handler(args) if args else handler()
-    
+
     # Display status after most commands, unless it's status itself or init (before lock exists)
     if cmd not in ["status", "init"]:
         _display_compact_status()

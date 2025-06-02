@@ -5,8 +5,6 @@ import importlib.resources as pkg_resources
 import sys
 from pathlib import Path
 
-from ai_sdlc.utils import write_lock
-
 ASCII_ART = """
    █████╗ ██╗███████╗██╗  ██╗ ██████╗██╗
   ██╔══██╗██║╚══███╔╝██║  ██║██╔════╝██║
