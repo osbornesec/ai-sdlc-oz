@@ -5,6 +5,19 @@ All notable changes to the `ai-sdlc` project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2025-01-20
+
+### 🔧 CI/CD Fixes
+
+- **Fixed GitHub environment requirement**: Commented out environment requirement in release workflow to avoid validation errors
+- **Updated PyPI setup documentation**: Added notes about optional environment configuration
+- **Workflow improvements**: Release workflow can now run without pre-existing GitHub environment
+
+### 📚 Documentation Updates
+
+- **Enhanced PyPI setup guide**: Clarified optional nature of GitHub environments
+- **Workflow troubleshooting**: Added guidance for environment setup
+
 ## [0.6.0] - 2025-01-20
 
 ### 🔄 File Naming Convention Update
