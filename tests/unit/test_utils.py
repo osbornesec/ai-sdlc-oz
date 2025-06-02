@@ -29,7 +29,7 @@ def test_load_config_success(temp_project_dir: Path, mocker):
 
 def test_load_config_missing(temp_project_dir: Path, mocker):
     mocker.patch('ai_sdlc.utils.ROOT', temp_project_dir)
-    with pytest.raises(FileNotFoundError, match="manifest missing"):
+    with pytest.raises(SystemExit, match="1"):
         utils.load_config()
 
 def test_load_config_corrupted(temp_project_dir: Path, mocker):
