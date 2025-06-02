@@ -5,7 +5,7 @@ import importlib.resources as pkg_resources
 import sys
 from pathlib import Path
 
-from ai_sdlc.utils import ROOT, write_lock
+from ai_sdlc.utils import write_lock
 
 ASCII_ART = """
    █████╗ ██╗███████╗██╗  ██╗ ██████╗██╗
@@ -26,7 +26,7 @@ How AI-SDLC Works:
 ------------------
 *   AI-SDLC guides you through a structured 8-step feature development process.
 *   Each step generates a Markdown file (e.g., for ideas, PRDs, architecture).
-*   The `aisdlc next` command uses an AI agent to help generate content for these files.
+*   The `aisdlc next` command generates prompts for use with any AI tool (Claude, ChatGPT, Cursor, etc.).
 *   This keeps your development process organized, documented, and version-controlled.
 """
 
@@ -51,12 +51,12 @@ Getting Started:
     `aisdlc new "Your Awesome Feature Title"`
 
 2.  Open and fill in the first Markdown file created in the `doing/your-awesome-feature-title/` directory
-    (e.g., `doing/your-awesome-feature-title/01-idea-your-awesome-feature-title.md`).
+    (e.g., `doing/your-awesome-feature-title/0-idea-your-awesome-feature-title.md`).
 
-3.  Advance to the next step (the AI will help generate the next file):
+3.  Advance to the next step (AI-SDLC will generate a prompt for your AI tool):
     `aisdlc next`
 
-4.  Review and edit the newly generated Markdown file for the current step.
+4.  Use the generated prompt with your preferred AI tool (Claude, ChatGPT, Cursor, etc.) and save the response.
 
 5.  Repeat steps 3 and 4 until all 8 steps are completed.
 
@@ -68,20 +68,23 @@ Getting Started:
 """
 
 PROMPT_FILE_NAMES = [
-    "01-idea-prompt.md",
-    "02-prd-prompt.md",
-    "03-prd-plus-prompt.md",
-    "04-architecture-prompt.md",
-    "05-system-patterns.md",
-    "06-tasks-prompt.md",
-    "07-tasks-plus-prompt.md",
-    "08-tests.md",
+    "0-idea.prompt.yml",
+    "1-prd.prompt.yml",
+    "2-prd-plus.prompt.yml",
+    "3-system-template.prompt.yml",
+    "4-systems-patterns.prompt.yml",
+    "5-tasks.prompt.yml",
+    "6-tasks-plus.prompt.yml",
+    "7-tests.prompt.yml",
 ]
 
 
 def run_init() -> None:
     """Scaffold AI-SDLC project: .aisdlc, prompts/, doing/, done/, .aisdlc.lock and print instructions."""
     print("Initializing AI-SDLC project...")
+
+    # Use current working directory for init (since .aisdlc doesn't exist yet)
+    init_root = Path.cwd()
 
     try:
         scaffold_dir = pkg_resources.files("ai_sdlc").joinpath("scaffold_template")
@@ -101,16 +104,16 @@ def run_init() -> None:
         sys.exit(1)
 
     # Create directories
-    prompts_target_dir = ROOT / "prompts"
+    prompts_target_dir = init_root / "prompts"
     prompts_target_dir.mkdir(exist_ok=True)
-    (ROOT / "doing").mkdir(exist_ok=True)
-    (ROOT / "done").mkdir(exist_ok=True)
+    (init_root / "doing").mkdir(exist_ok=True)
+    (init_root / "done").mkdir(exist_ok=True)
     print(
         f"📂 Created/ensured directories: {prompts_target_dir.relative_to(Path.cwd())}, doing/, done/"
     )
 
     # Write .aisdlc config file
-    config_target_path = ROOT / ".aisdlc"
+    config_target_path = init_root / ".aisdlc"
     if not config_target_path.exists():
         try:
             config_target_path.write_text(default_config_content)
@@ -160,9 +163,11 @@ def run_init() -> None:
 
     # Create lock file
     try:
-        write_lock({})  # This creates .aisdlc.lock
+        import json
+        lock_file_path = init_root / ".aisdlc.lock"
+        lock_file_path.write_text(json.dumps({}))
         print(
-            f"🔒 Created empty lock file: {(ROOT / '.aisdlc.lock').relative_to(Path.cwd())}"
+            f"🔒 Created empty lock file: {lock_file_path.relative_to(Path.cwd())}"
         )
     except OSError as e:
         print(f"❌ Error writing lock file: {e}")

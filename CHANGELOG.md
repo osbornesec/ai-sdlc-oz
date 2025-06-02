@@ -5,6 +5,96 @@ All notable changes to the `ai-sdlc` project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-01-20
+
+### 🔄 File Naming Convention Update
+
+**Breaking Changes:**
+
+- **Updated file naming**: Prompt files now use `.prompt.yml` extension instead of `.instructions.md`
+  - All 8 prompt files renamed: `0-idea.prompt.yml`, `1-prd.prompt.yml`, etc.
+  - Maintains tool-agnostic approach while using YAML-style naming convention
+
+### 🔧 Technical Improvements
+
+- **Updated all references**: Comprehensive update of all file references throughout the codebase
+  - Updated `ai_sdlc/commands/init.py` and `ai_sdlc/commands/next.py`
+  - Updated package data patterns in `pyproject.toml`
+  - Updated integration tests to expect new file names
+- **Cross-reference fixes**: Updated internal prompt file references
+  - Fixed references in `4-systems-patterns.prompt.yml` to `3-system-template.prompt.yml`
+  - Fixed references in `7-tests.prompt.yml` to `5-tasks.prompt.yml`
+
+### 📚 Documentation Updates
+
+- **Updated README**: File structure documentation now shows `.prompt.yml` extensions
+- **Updated CHANGELOG**: Migration guide references updated to new naming convention
+
+### 📦 Migration Guide
+
+Existing projects will continue to work, but to use the new naming convention:
+
+1. **Rename prompt files**: Change `.instructions.md` to `.prompt.yml` for all prompt files
+2. **Update any custom references**: If you have custom scripts referencing these files, update the extensions
+
+### 🎯 Benefits
+
+- **Consistent naming**: Aligns with YAML-style naming conventions while maintaining Markdown content
+- **Tool compatibility**: Maintains compatibility with all AI tools and development environments
+- **Future-ready**: Prepares for potential YAML frontmatter enhancements
+
+## [0.5.0] - 2025-06-02
+
+### 🎯 Major: Tool-Agnostic AI Integration
+
+**Breaking Changes:**
+
+- **Removed Cursor dependency**: AI-SDLC no longer requires Cursor or any specific AI tool
+- **New prompt-based workflow**: `aisdlc next` now generates prompt files instead of calling AI agents directly
+- **Updated file naming**: Prompt files now use `.prompt.yml` extension (e.g., `0-idea.prompt.yml`)
+- **Simplified step names**: Steps now use single digits (e.g., `0-idea`, `1-prd`) instead of zero-padded numbers
+
+### ✨ New Features
+
+- **Universal AI compatibility**: Works with any AI tool (Claude, ChatGPT, Cursor, Copilot, etc.)
+- **Flexible workflow**: Users can choose between CLI automation or manual prompt usage
+- **Improved user experience**: Clear instructions for using generated prompts with any AI assistant
+- **Better error handling**: More informative messages when files are missing or corrupted
+
+### 🔧 Technical Improvements
+
+- **Broader Python support**: Now supports Python 3.11+ (previously required 3.13+)
+- **Cleaner codebase**: Removed all tool-specific dependencies and references
+- **Updated documentation**: Comprehensive guide for using AI-SDLC with any AI tool
+- **Enhanced testing**: Updated test suite to work with the new tool-agnostic approach
+
+### 📚 Documentation Updates
+
+- **Tool-agnostic README**: Updated all documentation to remove Cursor-specific instructions
+- **Flexible usage guide**: Added examples for using AI-SDLC with different AI tools
+- **Simplified troubleshooting**: Removed tool-specific troubleshooting steps
+
+### 🗑️ Removed
+
+- **Cursor-specific files**: Removed `.cursor/` directory and Cursor configuration files
+- **Repomix integration**: Removed Repomix-related files and references
+- **Hardcoded AI agent calls**: Replaced with flexible prompt generation system
+
+### 📦 Migration Guide
+
+Existing projects will continue to work, but to take advantage of the new features:
+
+1. **Update prompt files**: Rename your prompt files to use the new `.prompt.yml` convention
+2. **Update step references**: Change step names from `01-idea` to `0-idea` format in any custom scripts
+3. **Choose your AI tool**: Use the generated prompts with your preferred AI assistant
+
+### 🎉 Benefits
+
+- **No vendor lock-in**: Use any AI tool you prefer
+- **Easier setup**: No need to install or configure specific AI tools
+- **Better compatibility**: Works across different development environments
+- **Future-proof**: Adaptable to new AI tools and services as they emerge
+
 ## [0.4.0] - 2025-01-03
 
 ### 🚀 Major Features
@@ -132,8 +222,7 @@ No configuration changes are needed - all improvements are backward compatible w
 
 ### Known Issues
 
-- An AI agent command (like `cursor agent`) must be available in your PATH for the `next` command to work correctly
-- AI-SDLC continues to require Python 3.13 or newer
+- AI-SDLC continues to require Python 3.11 or newer
 
 ## [0.2.0] - 2025-05-17
 

@@ -14,9 +14,9 @@ def find_project_root() -> Path:
     for parent in [current_dir] + list(current_dir.parents):
         if (parent / ".aisdlc").exists():
             return parent
-    # Fallback or error
-    print("Error: .aisdlc not found. Ensure you are in an ai-sdlc project directory.")
-    sys.exit(1)
+    # For init command, return current directory if no .aisdlc found
+    # Other commands will check for .aisdlc existence separately
+    return current_dir
 
 ROOT = find_project_root()
 
@@ -30,13 +30,14 @@ except ModuleNotFoundError:  # pragma: no cover – fallback for < 3.11
 def load_config() -> dict:
     cfg_path = ROOT / ".aisdlc"
     if not cfg_path.exists():
-        raise FileNotFoundError(".aisdlc manifest missing – run `aisdlc init`.")
+        print("Error: .aisdlc not found. Ensure you are in an ai-sdlc project directory.")
+        print("Run `aisdlc init` to initialize a new project.")
+        sys.exit(1)
     try:
         return _toml.loads(cfg_path.read_text())
     except _toml.TOMLDecodeError as e:
         print(f"❌ Error: '.aisdlc' configuration file is corrupted: {e}")
         print("Please fix the .aisdlc file or run 'aisdlc init' in a new directory.")
-        import sys
         sys.exit(1)
 
 

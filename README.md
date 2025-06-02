@@ -113,16 +113,17 @@ aisdlc status
 
 ### 4️⃣ Follow the Workflow
 
-1. **Fill out the generated markdown** in `doing/add-user-authentication-system/01-idea-*.md`
-2. **Run `aisdlc next`** to progress to the next step
-3. **Repeat** until all 8 steps are complete
-4. **Archive** with `aisdlc done`
+1. **Fill out the generated markdown** in `doing/add-user-authentication-system/0-idea-*.md`
+2. **Run `aisdlc next`** to generate an AI prompt for the next step
+3. **Use the prompt** with your preferred AI tool (Claude, ChatGPT, Cursor, etc.) and save the response
+4. **Repeat** until all 8 steps are complete
+5. **Archive** with `aisdlc done`
 
-> 💡 **Tip**: Use AI chat (like Cursor, Claude, or ChatGPT) for steps 1-5 to iterate and refine your ideas!
+> 💡 **Tip**: AI-SDLC works with any AI tool - use your favorite AI assistant!
 
 ### 🎯 Flexible Usage
 
-**Option 1: Full CLI Workflow** - Use the complete automated workflow with `aisdlc` commands
+**Option 1: Full CLI Workflow** - Use the complete workflow with `aisdlc` commands that generate prompts for your AI tool
 
 **Option 2: Prompts Only** - Just use the prompt templates manually with your preferred AI tool:
 
@@ -279,14 +280,14 @@ flowchart TD
 │   ├── scaffold_template/  # default templates for new projects
 │   └── utils.py            # shared helpers
 ├── prompts/                # LLM templates for each SDLC step
-│   ├── 01-idea-prompt.md   # initial idea analysis
-│   ├── 02-prd-prompt.md    # product requirements
-│   ├── 03-prd-plus-prompt.md # enhanced requirements
-│   ├── 04-architecture-prompt.md # system architecture
-│   ├── 05-systems-patterns.md # design patterns
-│   ├── 06-tasks-prompt.md  # implementation tasks
-│   ├── 07-tasks-plus-prompt.md # task list review & handoff preparation
-│   └── 08-tests.md         # test generation
+│   ├── 0-idea.prompt.yml   # initial idea analysis
+│   ├── 1-prd.prompt.yml    # product requirements
+│   ├── 2-prd-plus.prompt.yml # enhanced requirements
+│   ├── 3-system-template.prompt.yml # system architecture
+│   ├── 4-systems-patterns.prompt.yml # design patterns
+│   ├── 5-tasks.prompt.yml  # implementation tasks
+│   ├── 6-tasks-plus.prompt.yml # task list review & handoff preparation
+│   └── 7-tests.prompt.yml         # test generation
 ├── tests/                  # pytest suite (unit + integration)
 │   ├── unit/               # unit tests
 │   └── integration/        # integration tests
@@ -416,9 +417,9 @@ Integration tests spin up a temp project dir and exercise the CLI flow.
 
 **"AI agent command not found"**
 
-- Ensure your AI editor is installed and configured properly
-- For Cursor: verify the `cursor` command is in your PATH
-- Alternative: Use prompt templates manually with any AI chat interface
+- AI-SDLC generates prompts that work with any AI tool
+- No specific AI tool installation required
+- Use the generated prompts with your preferred AI assistant
 
 **"Permission denied" errors**
 

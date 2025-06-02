@@ -6,7 +6,7 @@ import datetime
 import sys
 from pathlib import Path
 
-from ai_sdlc.utils import ROOT, slugify, write_lock
+from ai_sdlc.utils import ROOT, slugify, write_lock, load_config
 
 
 def run_new(args: list[str]) -> None:
@@ -14,6 +14,10 @@ def run_new(args: list[str]) -> None:
     if not args:
         print("Usage: aisdlc new \"Idea title\"")
         sys.exit(1)
+
+    # Load configuration to get the first step
+    config = load_config()
+    first_step = config["steps"][0]
 
     idea_text = " ".join(args)
     slug = slugify(idea_text)
@@ -25,7 +29,7 @@ def run_new(args: list[str]) -> None:
 
     try:
         workdir.mkdir(parents=True)
-        idea_file = workdir / f"01-idea-{slug}.md"
+        idea_file = workdir / f"{first_step}-{slug}.md"
         idea_file.write_text(
             f"# {idea_text}\n\n## Problem\n\n## Solution\n\n## Rabbit Holes\n",
         )
@@ -33,7 +37,7 @@ def run_new(args: list[str]) -> None:
         write_lock(
             {
                 "slug": slug,
-                "current": "01-idea",
+                "current": first_step,
                 "created": datetime.datetime.utcnow().isoformat(),
             },
         )

@@ -2,15 +2,12 @@
 
 from __future__ import annotations
 
-import subprocess
+import os
 import sys
 import tempfile
 from pathlib import Path
 
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
-
-# Define a reasonable timeout for AI agent calls
-AI_AGENT_TIMEOUT = 45  # 45 seconds
 
 PLACEHOLDER = "<prev_step></prev_step>"
 
@@ -34,7 +31,7 @@ def run_next() -> None:
 
     workdir = ROOT / conf["active_dir"] / slug
     prev_file   = workdir / f"{prev_step}-{slug}.md"
-    prompt_file = ROOT / conf["prompt_dir"] / f"{next_step}-prompt.md"
+    prompt_file = ROOT / conf["prompt_dir"] / f"{next_step}.prompt.yml"
     next_file   = workdir / f"{next_step}-{slug}.md"
 
     if not prev_file.exists():
@@ -56,40 +53,42 @@ def run_next() -> None:
     prompt_template_content = prompt_file.read_text()
 
     merged_prompt = prompt_template_content.replace(PLACEHOLDER, prev_step_content)
-    tmp_prompt_path_str = None  # Initialize for finally block
-    try:
-        with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".md", encoding="utf-8") as tmp_file_obj:
-            tmp_prompt_path_str = tmp_file_obj.name
-            tmp_file_obj.write(merged_prompt)
 
-        print(f"🧠  Calling AI agent for step {next_step} …")
-        print(f"   Using temporary prompt file: {tmp_prompt_path_str}")
-        try:
-            output = subprocess.check_output(
-                ["cursor", "agent", "--file", tmp_prompt_path_str],
-                text=True,
-                timeout=AI_AGENT_TIMEOUT,
-            )
-        except subprocess.CalledProcessError as e:
-            print(f"❌  AI agent failed with exit code {e.returncode}.")
-            if e.stdout:
-                print(f"Stdout:\n{e.stdout}")
-            if e.stderr:
-                print(f"Stderr:\n{e.stderr}")
-            sys.exit(1)
-        except subprocess.TimeoutExpired:
-            print(f"❌  AI agent timed out after {AI_AGENT_TIMEOUT} seconds.")
-            sys.exit(1)
-    finally:
-        if tmp_prompt_path_str and Path(tmp_prompt_path_str).exists():
-            Path(tmp_prompt_path_str).unlink()
+    # Create a prompt file for the user to use with their preferred AI tool
+    prompt_output_file = workdir / f"_prompt-{next_step}.md"
+    prompt_output_file.write_text(merged_prompt)
 
-    print(f"ℹ️  AI agent finished. Writing output to: {next_file}")
-    try:
-        next_file.write_text(output)
+    print(f"📝  Generated AI prompt file: {prompt_output_file}")
+    print(f"🤖  Please use this prompt with your preferred AI tool to generate content for step '{next_step}'")
+    print(f"    Then save the AI's response to: {next_file}")
+    print()
+    print("💡  Options:")
+    print("    • Copy the prompt content and paste into any AI chat (Claude, ChatGPT, etc.)")
+    print("    • Use with Cursor: cursor agent --file " + str(prompt_output_file))
+    print("    • Use with any other AI-powered editor or CLI tool")
+    print()
+    print(f"⏭️   After saving the AI response, the next step file should be: {next_file}")
+    print(f"    Once ready, run 'aisdlc next' again to continue to the next step.")
+
+    # Check if the user has already created the next step file
+    if next_file.exists():
+        print(f"✅  Found existing file: {next_file}")
+        print("    Proceeding to update the workflow state...")
+
+        # Update the lock to reflect the current step
         lock["current"] = next_step
         write_lock(lock)
-        print(f"✅  Wrote {next_file}")
-    except OSError as e:
-        print(f"❌  Error writing output to {next_file}: {e}")
-        sys.exit(1)
+        print(f"✅  Advanced to step: {next_step}")
+
+        # Clean up the prompt file since it's no longer needed
+        if prompt_output_file.exists():
+            prompt_output_file.unlink()
+            print(f"🧹  Cleaned up prompt file: {prompt_output_file}")
+
+        return
+    else:
+        print(f"⏸️   Waiting for you to create: {next_file}")
+        print("    Use the generated prompt with your AI tool, then run 'aisdlc next' again.")
+        return
+
+
