@@ -77,7 +77,7 @@ PROMPT_FILE_NAMES = [
 ]
 
 
-def run_init() -> None:
+def run_init(args: list[str] = None) -> None:
     """Scaffold AI-SDLC project: .aisdlc, prompts/, doing/, done/, .aisdlc.lock and print instructions."""
     print("Initializing AI-SDLC project...")
 

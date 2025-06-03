@@ -4,7 +4,7 @@
 from ai_sdlc.utils import load_config, read_lock
 
 
-def run_status() -> None:
+def run_status(args: list[str] = None) -> None:
     conf = load_config()
     steps = conf["steps"]
     lock = read_lock()

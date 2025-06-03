@@ -17,6 +17,11 @@ For the *exemplar* tasks within *this* document, the following were used (and yo
 *   `architecture.md` (Exemplar context)
 *   `system-patterns.md` (Exemplar context)
 
+<context7_docs>
+<!-- Context7 library documentation will be automatically inserted here -->
+<!-- This includes current API references, best practices, and version-specific information -->
+</context7_docs>
+
 **Instructions for AI Assistant (You) when Generating a *New* Task List:**
 1.  **Input PRD Focus:** Your generated task list must be based *entirely* on the new PRD provided to you.
 2.  **Follow the Format:** Replicate the hierarchical structure (Phases, Task Groups, Tasks), the use of "Objective," "Action(s)," and "Verification/Deliverable(s)" for each task, and the markdown formatting.

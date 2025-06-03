@@ -15,6 +15,7 @@ _COMMANDS: dict[str, str] = {
     "next": "ai_sdlc.commands.next:run_next",
     "status": "ai_sdlc.commands.status:run_status",
     "done": "ai_sdlc.commands.done:run_done",
+    "context": "ai_sdlc.commands.context:run_context",
 }
 
 
@@ -70,7 +71,7 @@ def main() -> None:  # noqa: D401
         sys.exit(1)
 
     handler = _resolve(_COMMANDS[cmd])
-    handler(args) if args else handler()
+    handler(args)
 
     # Display status after most commands, unless it's status itself or init (before lock exists)
     if cmd not in ["status", "init"]:

@@ -38,7 +38,10 @@ classifiers = [
     "Topic :: Software Development :: Quality Assurance",
     "Topic :: Utilities",
 ]
-dependencies = ["tomli >= 1.2.0 ; python_version < '3.11'"]
+dependencies = [
+    "tomli >= 1.2.0 ; python_version < '3.11'",
+    "httpx >= 0.25.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/ParkerRex/ai-sdlc"

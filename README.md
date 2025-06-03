@@ -131,6 +131,26 @@ aisdlc status
 - Use with any AI chat interface (Cursor, Claude, ChatGPT, etc.)
 - Perfect for one-off projects or custom workflows
 
+### 📚 NEW: Context7 Integration
+
+AI-SDLC now includes **Context7 MCP integration** for enhanced AI prompts with real-time library documentation:
+
+- **Automatic library detection** from your project content
+- **Current documentation** fetched directly from official sources
+- **Better AI responses** with accurate API references and best practices
+- **Reduced hallucination** by providing concrete examples
+
+```bash
+# View detected libraries
+aisdlc context
+
+# Force specific libraries
+aisdlc context --libraries react,fastapi,postgresql
+
+# Clear documentation cache
+aisdlc context --clear-cache
+```
+
 ---
 
 ## 📦 Installation
@@ -211,6 +231,7 @@ flowchart TD
 | `aisdlc next`       | Progress to next step in workflow       | `aisdlc next`                          |
 | `aisdlc status`     | Show current project status             | `aisdlc status`                        |
 | `aisdlc done`       | Archive completed feature to done/      | `aisdlc done`                          |
+| `aisdlc context`    | Manage Context7 library documentation   | `aisdlc context --libraries react`     |
 | `aisdlc --help`     | Show help information                   | `aisdlc --help`                        |
 
 **Working with steps:**
