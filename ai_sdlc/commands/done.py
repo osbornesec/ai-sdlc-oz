@@ -7,9 +7,9 @@ from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
 
 def run_done() -> None:
-    conf  = load_config()
+    conf = load_config()
     steps = conf["steps"]
-    lock  = read_lock()
+    lock = read_lock()
     if not lock:
         print("❌  No active workstream.")
         return

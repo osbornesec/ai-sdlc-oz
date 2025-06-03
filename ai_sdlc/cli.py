@@ -40,14 +40,25 @@ def _display_compact_status() -> None:
         if current_step_name in steps:
             idx = steps.index(current_step_name)
             # Steps are in format like "01-idea", take the part after the dash
-            bar = " ▸ ".join([("✅" if i <= idx else "☐") + s.split("-", 1)[1] for i, s in enumerate(steps)])
+            bar = " ▸ ".join(
+                [
+                    ("✅" if i <= idx else "☐") + s.split("-", 1)[1]
+                    for i, s in enumerate(steps)
+                ]
+            )
             print(f"\n---\n📌 Current: {slug} @ {current_step_name}\n   {bar}\n---")
         else:
-            print(f"\n---\n📌 Current: {slug} @ {current_step_name} (Step not in config)\n---")
+            print(
+                f"\n---\n📌 Current: {slug} @ {current_step_name} (Step not in config)\n---"
+            )
     except FileNotFoundError:  # .aisdlc missing
-        print("\n---\n📌 AI-SDLC config (.aisdlc) not found. Cannot display status.\n---")
+        print(
+            "\n---\n📌 AI-SDLC config (.aisdlc) not found. Cannot display status.\n---"
+        )
     except Exception:  # Catch other potential errors during status display
-        print("\n---\n📌 Could not display current status due to an unexpected issue.\n---")
+        print(
+            "\n---\n📌 Could not display current status due to an unexpected issue.\n---"
+        )
 
 
 def main() -> None:  # noqa: D401

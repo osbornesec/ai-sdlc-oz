@@ -98,16 +98,16 @@ def test_full_lifecycle_flow(temp_project_dir: Path, mocker):
     )
 
     # Check that a prompt file was generated
-    prompt_file = (
-        temp_project_dir / "doing" / idea_slug / f"_prompt-{test_steps[1]}.md"
-    )
+    prompt_file = temp_project_dir / "doing" / idea_slug / f"_prompt-{test_steps[1]}.md"
     assert prompt_file.exists(), f"Expected prompt file {prompt_file} to be generated"
 
     # Simulate user creating the next step file with AI-generated content
     next_step_file = (
         temp_project_dir / "doing" / idea_slug / f"{test_steps[1]}-{idea_slug}.md"
     )
-    next_step_file.write_text("# Mock PRD Content\n\n## Overview\n\nThis is a mock PRD for testing.")
+    next_step_file.write_text(
+        "# Mock PRD Content\n\n## Overview\n\nThis is a mock PRD for testing."
+    )
 
     # Run next again to advance the workflow state
     result = run_aisdlc_command(temp_project_dir, "next")
@@ -120,7 +120,9 @@ def test_full_lifecycle_flow(temp_project_dir: Path, mocker):
     assert lock_content["current"] == test_steps[1]  # e.g., "1-prd"
 
     # Check that the prompt file was cleaned up
-    assert not prompt_file.exists(), f"Prompt file {prompt_file} should have been cleaned up"
+    assert not prompt_file.exists(), (
+        f"Prompt file {prompt_file} should have been cleaned up"
+    )
 
     # 4. Run next command again (advancing from 1-prd to 2-prd-plus)
     # Ensure a prompt file for 2-prd-plus.prompt.yml exists from init
@@ -135,13 +137,17 @@ def test_full_lifecycle_flow(temp_project_dir: Path, mocker):
     prompt_file_2 = (
         temp_project_dir / "doing" / idea_slug / f"_prompt-{test_steps[2]}.md"
     )
-    assert prompt_file_2.exists(), f"Expected prompt file {prompt_file_2} to be generated"
+    assert prompt_file_2.exists(), (
+        f"Expected prompt file {prompt_file_2} to be generated"
+    )
 
     # Simulate user creating the next step file
     next_step_file_2 = (
         temp_project_dir / "doing" / idea_slug / f"{test_steps[2]}-{idea_slug}.md"
     )
-    next_step_file_2.write_text("# Mock PRD Plus Content\n\n## Additional Details\n\nThis is a mock PRD+ for testing.")
+    next_step_file_2.write_text(
+        "# Mock PRD Plus Content\n\n## Additional Details\n\nThis is a mock PRD+ for testing."
+    )
 
     # Run next again to advance the workflow state
     result = run_aisdlc_command(temp_project_dir, "next")

@@ -162,11 +162,10 @@ def run_init() -> None:
     # Create lock file
     try:
         import json
+
         lock_file_path = init_root / ".aisdlc.lock"
         lock_file_path.write_text(json.dumps({}))
-        print(
-            f"🔒 Created empty lock file: {lock_file_path.relative_to(Path.cwd())}"
-        )
+        print(f"🔒 Created empty lock file: {lock_file_path.relative_to(Path.cwd())}")
     except OSError as e:
         print(f"❌ Error writing lock file: {e}")
         sys.exit(1)

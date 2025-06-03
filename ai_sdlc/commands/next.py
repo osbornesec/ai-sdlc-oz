@@ -8,6 +8,7 @@ from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
 PLACEHOLDER = "<prev_step></prev_step>"
 
+
 def run_next() -> None:
     conf = load_config()
     steps = conf["steps"]
@@ -18,7 +19,7 @@ def run_next() -> None:
         return
 
     slug = lock["slug"]
-    idx  = steps.index(lock["current"])
+    idx = steps.index(lock["current"])
     if idx + 1 >= len(steps):
         print("🎉  All steps complete. Run `aisdlc done` to archive.")
         return
@@ -27,22 +28,28 @@ def run_next() -> None:
     next_step = steps[idx + 1]
 
     workdir = ROOT / conf["active_dir"] / slug
-    prev_file   = workdir / f"{prev_step}-{slug}.md"
+    prev_file = workdir / f"{prev_step}-{slug}.md"
     prompt_file = ROOT / conf["prompt_dir"] / f"{next_step}.prompt.yml"
-    next_file   = workdir / f"{next_step}-{slug}.md"
+    next_file = workdir / f"{next_step}-{slug}.md"
 
     if not prev_file.exists():
         print(f"❌ Error: The previous step's output file '{prev_file}' is missing.")
         print(f"   This file is required as input to generate the '{next_step}' step.")
-        print("   Please restore this file (e.g., from version control) or ensure it was correctly generated.")
-        print(f"   If you need to restart the '{prev_step}', you might need to adjust '.aisdlc.lock' or re-run the command that generates '{prev_step}'.")
+        print(
+            "   Please restore this file (e.g., from version control) or ensure it was correctly generated."
+        )
+        print(
+            f"   If you need to restart the '{prev_step}', you might need to adjust '.aisdlc.lock' or re-run the command that generates '{prev_step}'."
+        )
         sys.exit(1)  # Make it a harder exit
     if not prompt_file.exists():
         print(f"❌ Critical Error: Prompt template file '{prompt_file}' is missing.")
         print(f"   This file is essential for generating the '{next_step}' step.")
         print(f"   Please ensure it exists in your '{conf['prompt_dir']}/' directory.")
-        print("   You may need to restore it from version control or your initial 'aisdlc init' setup.")
-        sys.exit(1) # Make it a harder exit
+        print(
+            "   You may need to restore it from version control or your initial 'aisdlc init' setup."
+        )
+        sys.exit(1)  # Make it a harder exit
 
     print(f"ℹ️  Reading previous step from: {prev_file}")
     prev_step_content = prev_file.read_text()
@@ -56,15 +63,21 @@ def run_next() -> None:
     prompt_output_file.write_text(merged_prompt)
 
     print(f"📝  Generated AI prompt file: {prompt_output_file}")
-    print(f"🤖  Please use this prompt with your preferred AI tool to generate content for step '{next_step}'")
+    print(
+        f"🤖  Please use this prompt with your preferred AI tool to generate content for step '{next_step}'"
+    )
     print(f"    Then save the AI's response to: {next_file}")
     print()
     print("💡  Options:")
-    print("    • Copy the prompt content and paste into any AI chat (Claude, ChatGPT, etc.)")
+    print(
+        "    • Copy the prompt content and paste into any AI chat (Claude, ChatGPT, etc.)"
+    )
     print("    • Use with Cursor: cursor agent --file " + str(prompt_output_file))
     print("    • Use with any other AI-powered editor or CLI tool")
     print()
-    print(f"⏭️   After saving the AI response, the next step file should be: {next_file}")
+    print(
+        f"⏭️   After saving the AI response, the next step file should be: {next_file}"
+    )
     print("    Once ready, run 'aisdlc next' again to continue to the next step.")
 
     # Check if the user has already created the next step file
@@ -85,7 +98,7 @@ def run_next() -> None:
         return
     else:
         print(f"⏸️   Waiting for you to create: {next_file}")
-        print("    Use the generated prompt with your AI tool, then run 'aisdlc next' again.")
+        print(
+            "    Use the generated prompt with your AI tool, then run 'aisdlc next' again."
+        )
         return
-
-

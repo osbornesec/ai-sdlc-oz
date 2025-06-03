@@ -11,7 +11,7 @@ from ai_sdlc.utils import ROOT, load_config, slugify, write_lock
 def run_new(args: list[str]) -> None:
     """Create the work-stream folder and first markdown file."""
     if not args:
-        print("Usage: aisdlc new \"Idea title\"")
+        print('Usage: aisdlc new "Idea title"')
         sys.exit(1)
 
     # Load configuration to get the first step

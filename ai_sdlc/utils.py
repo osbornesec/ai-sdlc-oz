@@ -19,6 +19,7 @@ def find_project_root() -> Path:
     # Other commands will check for .aisdlc existence separately
     return current_dir
 
+
 ROOT = find_project_root()
 
 # --- TOML loader (Python ≥3.11 stdlib) --------------------------------------
@@ -31,7 +32,9 @@ except ModuleNotFoundError:  # pragma: no cover – fallback for < 3.11
 def load_config() -> dict:
     cfg_path = ROOT / ".aisdlc"
     if not cfg_path.exists():
-        print("Error: .aisdlc not found. Ensure you are in an ai-sdlc project directory.")
+        print(
+            "Error: .aisdlc not found. Ensure you are in an ai-sdlc project directory."
+        )
         print("Run `aisdlc init` to initialize a new project.")
         sys.exit(1)
     try:
@@ -56,7 +59,9 @@ def read_lock() -> dict:
     try:
         return json.loads(path.read_text())
     except json.JSONDecodeError:
-        print("⚠️  Warning: '.aisdlc.lock' file is corrupted or not valid JSON. Treating as empty.")
+        print(
+            "⚠️  Warning: '.aisdlc.lock' file is corrupted or not valid JSON. Treating as empty."
+        )
         return {}
 
 
