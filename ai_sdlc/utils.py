@@ -30,7 +30,7 @@ try:
     import tomllib as toml_lib  # Python 3.11+
 except ModuleNotFoundError:  # pragma: no cover – fallback for < 3.11
     # `uv pip install tomli`
-    import tomli as toml_lib  # noqa: D401  # pyright: ignore[reportMissingImports]
+    import tomli as toml_lib  # type: ignore[import-not-found,no-redef]  # noqa: D401
 
 
 def load_config() -> ConfigDict:
