@@ -224,10 +224,10 @@ def test_run_next_direct_api_call_success(
     capsys: pytest.CaptureFixture,
 ):
     root_path = setup_working_directory
-    
+
     with patch("ai_sdlc.utils.ROOT", root_path), \
          patch("ai_sdlc.commands.next.ROOT", root_path):
-        
+
         auto_mock_dependencies["load_config"].return_value = mock_config
         auto_mock_dependencies["read_lock"].return_value = mock_lock
 
@@ -418,19 +418,19 @@ def test_run_next_manual_provider(
     capsys: pytest.CaptureFixture,
 ):
     root_path = setup_working_directory
-    
+
     # Patch ROOT to be the actual path instead of using return_value
     with patch("ai_sdlc.utils.ROOT", root_path), \
          patch("ai_sdlc.commands.next.ROOT", root_path):
-        
+
         auto_mock_dependencies["load_config"].return_value = mock_config
-        
+
         auto_mock_dependencies["read_lock"].return_value = mock_lock
 
         mock_generate_text_func = auto_mock_dependencies["generate_text"]
 
         run_next()
-            
+
         captured = capsys.readouterr()
         # No specific message for "manual mode selected", just straight to prompt generation
         assert "📝  Generated AI prompt file:" in captured.out
