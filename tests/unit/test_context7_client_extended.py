@@ -1,3 +1,5 @@
+
+# pyright: reportMissingImports=false
 """Extended unit tests for Context7 client to achieve 100% coverage."""
 
 import asyncio
@@ -137,7 +139,7 @@ class TestContext7ClientExtended:
         mock_result = {"content": "# Library Docs\n\nTest documentation"}
         
         with patch.object(client, '_execute_tool', new_callable=AsyncMock, return_value=mock_result):
-            docs = await client.get_library_docs("/test/library", "test topic", 1000)
+            docs = await client.get_library_docs("/test/library", 1000, "test topic")  # pyright: ignore[reportGeneralTypeIssues]
             assert "# Library Docs" in docs
             assert "Test documentation" in docs
 
@@ -147,7 +149,7 @@ class TestContext7ClientExtended:
         client = Context7Client()
         
         with patch.object(client, '_execute_tool', new_callable=AsyncMock, return_value=None):
-            docs = await client.get_library_docs("/test/library", "test", 1000)
+            docs = await client.get_library_docs("/test/library", 1000, "test")  # pyright: ignore[reportGeneralTypeIssues]
             assert docs == ""
 
     @pytest.mark.asyncio
@@ -156,7 +158,7 @@ class TestContext7ClientExtended:
         client = Context7Client()
         
         with patch.object(client, '_execute_tool', new_callable=AsyncMock, return_value={"content": ""}):
-            docs = await client.get_library_docs("/test/library", "test", 1000)
+            docs = await client.get_library_docs("/test/library", 1000, "test")  # pyright: ignore[reportGeneralTypeIssues]
             assert docs == ""
 
     def test_resolve_library_id_success(self):
@@ -262,7 +264,7 @@ console.log("test");
 ```
 '''
         
-        result = client._parse_docs_content(content)
+        result = client._parse_docs_content(content)  # pyright: ignore[reportArgumentType]
         assert "```python" in result
         assert "def test():" in result
         assert "```javascript" in result

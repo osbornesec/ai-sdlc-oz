@@ -2,6 +2,7 @@
 """`aisdlc status` – show progress through lifecycle steps."""
 
 from ai_sdlc.utils import load_config, read_lock
+from ai_sdlc.types import ConfigDict, LockDict
 
 
 def run_status(args: list[str] | None = None) -> None:
@@ -10,13 +11,14 @@ def run_status(args: list[str] | None = None) -> None:
     Args:
         args: Command line arguments (currently unused)
     """
-    conf = load_config()
+    conf: ConfigDict = load_config()
     steps = conf["steps"]
-    lock = read_lock()
+    lock: LockDict = read_lock()
     print("Active workstreams\n------------------")
     if not lock:
         print("none – create one with `aisdlc new`")
         return
+    assert "slug" in lock and "current" in lock
     slug = lock["slug"]
     cur = lock["current"]
     idx = steps.index(cur)

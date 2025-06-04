@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+# pyright: reportMissingImports=false
 import pytest
 
 from ai_sdlc import utils
@@ -67,7 +68,7 @@ def test_load_config_corrupted(temp_project_dir: Path, mocker):
 
     # Should call sys.exit(1)
     utils.load_config()
-    utils.sys.exit.assert_called_once_with(1)
+    utils.sys.exit.assert_called_once_with(1)  # pyright: ignore[reportFunctionMemberAccess]
 
 
 def test_read_write_lock(temp_project_dir: Path, mocker):
@@ -75,7 +76,7 @@ def test_read_write_lock(temp_project_dir: Path, mocker):
     lock_data = {"slug": "test-slug", "current": "01-idea"}
 
     # Test write_lock
-    utils.write_lock(lock_data)
+    utils.write_lock(lock_data)  # pyright: ignore[reportArgumentType]
     lock_file = temp_project_dir / ".aisdlc.lock"
     assert lock_file.exists()
     assert json.loads(lock_file.read_text()) == lock_data

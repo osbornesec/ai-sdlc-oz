@@ -1,3 +1,5 @@
+
+# pyright: reportMissingImports=false
 """Integration tests for the context command."""
 
 import json
@@ -52,7 +54,6 @@ class TestContextCommand:
             idea_file = project_dir / "doing" / "test-project" / "00-idea-test-project.md"
             idea_file.write_text("""
             # Test Project
-            
             Building a web app using React and FastAPI.
             Database will be PostgreSQL.
             """)

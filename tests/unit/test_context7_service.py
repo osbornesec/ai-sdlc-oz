@@ -1,3 +1,5 @@
+
+# pyright: reportMissingImports=false
 """Unit tests for Context7 service."""
 
 import json
@@ -30,7 +32,7 @@ class TestContext7Service:
         cache_dir = temp_cache_dir / "test_cache"
         assert not cache_dir.exists()
         
-        service = Context7Service(cache_dir)
+        Context7Service(cache_dir)
         assert cache_dir.exists()
 
     def test_extract_libraries_from_text(self, service):

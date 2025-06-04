@@ -6,6 +6,7 @@ import sys
 
 from ai_sdlc.services.context7_service import Context7Service
 from ai_sdlc.utils import ROOT, load_config, read_lock
+from ai_sdlc.types import ConfigDict, LockDict
 
 
 def run_context(args: list[str] | None) -> None:
@@ -18,8 +19,8 @@ def run_context(args: list[str] | None) -> None:
     Raises:
         SystemExit: If no active workstream or invalid arguments
     """
-    config = load_config()
-    lock = read_lock()
+    config: ConfigDict = load_config()
+    lock: LockDict = read_lock()
 
     if not lock:
         print("❌  No active workstream. Run `aisdlc new` first.")
@@ -91,6 +92,7 @@ def run_context(args: list[str] | None) -> None:
         return
 
     # Get current step and content
+    assert "slug" in lock and "current" in lock
     slug = lock["slug"]
     current_step = lock["current"]
     steps = config["steps"]

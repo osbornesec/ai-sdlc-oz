@@ -1,3 +1,5 @@
+
+# pyright: reportMissingImports=false
 """Unit tests for Context7 client."""
 
 import asyncio
