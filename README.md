@@ -182,29 +182,14 @@ aisdlc --help
 
 The AI-SDLC workflow follows an 8-step process from idea to tests:
 
-```mermaid
-flowchart TD
-    I[01-idea]-->P1[02-prd]-->P2[03-prd-plus]-->A[04-architecture]
-    A-->SP[05-system-patterns]-->T[06-tasks]-->TP[07-tasks-plus]-->TESTS[08-tests]
-
-    %% Iteration loop for steps 1-5
-    CHAT[💬 Iterate with AI Chat]
-    I -.-> CHAT
-    P1 -.-> CHAT
-    P2 -.-> CHAT
-    A -.-> CHAT
-    SP -.-> CHAT
-    CHAT -.-> I
-    CHAT -.-> P1
-    CHAT -.-> P2
-    CHAT -.-> A
-    CHAT -.-> SP
-
-    %% Agent mode for steps 7-8
-    AGENT[🤖 Use AI Agent Mode]
-    TP --- AGENT
-    TESTS --- AGENT
-```
+1. **Idea** - Capture and refine your initial concept
+2. **PRD** - Create product requirements document
+3. **PRD Plus** - Enhance requirements with technical details
+4. **Architecture** - Design system architecture
+5. **System Patterns** - Define implementation patterns
+6. **Tasks** - Break down implementation into tasks
+7. **Tasks Plus** - Review and refine task list
+8. **Tests** - Generate comprehensive test suite
 
 ### 🎯 Workflow Modes
 
@@ -291,14 +276,56 @@ flowchart TD
 
 ---
 
+## 🚀 CI/CD & Quality Assurance
+
+AI-SDLC includes comprehensive GitHub Actions workflows for continuous integration and quality assurance:
+
+### 🔍 Automated Testing & Linting
+- **Multi-OS Testing**: Tests run on Ubuntu, Windows, and macOS
+- **Python Versions**: Supports Python 3.11, 3.12, and 3.13
+- **Type Checking**: Full Pyright/mypy type coverage
+- **Code Quality**: Ruff linting and formatting
+
+### 🔒 Security Workflows
+- **CodeQL Analysis**: Automated security vulnerability scanning
+- **Dependency Scanning**: Checks for known vulnerabilities in dependencies
+- **Secrets Detection**: Prevents accidental credential commits
+- **SAST**: Static application security testing with Semgrep
+
+### 🤖 AI-Powered Code Review
+- **CodeRabbit Integration**: Automated AI code reviews on every PR
+- **Custom AST Rules**: Enforces project-specific best practices
+- **Smart Suggestions**: Context-aware improvement recommendations
+
+### 📦 Dependency Management
+- **Automated Updates**: Weekly dependency update PRs
+- **Security Patches**: Priority updates for security vulnerabilities
+- **Compatibility Testing**: Ensures updates don't break functionality
+
+---
+
 ## 🏗️ Project Structure
 
 ```text
 .
+├── .github/                # GitHub configuration
+│   ├── workflows/          # GitHub Actions CI/CD
+│   │   ├── ci.yml          # Main CI workflow
+│   │   ├── security.yml    # Security scanning
+│   │   └── dependency-update.yml # Automated updates
+│   └── assets/             # Repository images
+├── .coderabbit.yaml        # CodeRabbit AI review configuration
+├── .coderabbit/            # Custom AST rules for code review
 ├── ai_sdlc/                # main Python package
 │   ├── cli.py              # entry point for `aisdlc`
-│   ├── commands/           # sub-commands: init | new | next | status | done
+│   ├── commands/           # sub-commands: init | new | next | status | done | context
+│   ├── services/           # external service integrations
+│   │   ├── context7_client.py  # Context7 MCP API client
+│   │   └── context7_service.py # Context7 documentation service
 │   ├── scaffold_template/  # default templates for new projects
+│   ├── config_validator.py # configuration validation
+│   ├── library_mappings.py # library name mappings
+│   ├── types.py            # type definitions
 │   └── utils.py            # shared helpers
 ├── prompts/                # LLM templates for each SDLC step
 │   ├── 0-idea.prompt.yml   # initial idea analysis
@@ -365,7 +392,8 @@ The workflow engine processes each step by:
 | CLI            | **Python 3.13**, `click`-style argparse (stdlib) | modern syntax, zero deps runtime       |
 | Package mgmt   | **uv**                                           | fast, lock-file driven reproducibility |
 | Dev tooling    | **Ruff**, **Pyright**, **pytest**                | lint + format, type-check, tests       |
-| AI Integration | **Pluggable AI agents**                          | works with any AI editor or API        |
+| AI Integration | **Pluggable AI agents**, **Context7 MCP**        | works with any AI editor or API        |
+| CI/CD          | **GitHub Actions**, **CodeRabbit**                | automated testing, security, reviews   |
 | Packaging      | `setuptools`, PEP 621 metadata                   | slim install                           |
 
 ### `pyproject.toml` excerpt
@@ -470,9 +498,20 @@ Integration tests spin up a temp project dir and exercise the CLI flow.
 
 ## 🗺️ Roadmap
 
-### Planned Features
+### ✅ Recently Completed
+
+- [x] **Context7 MCP Integration** - Library documentation in prompts
+- [x] **GitHub Actions CI/CD** - Automated testing and security scanning
+- [x] **CodeRabbit Integration** - AI-powered code reviews
+- [x] **Multi-OS Testing** - Windows, macOS, and Linux support
+- [x] **Comprehensive Type Coverage** - Full Pyright/mypy type checking
+
+### 🚧 In Progress
 
 - [ ] **Pluggable AI providers** – flag `--model` to swap GPT-4o, Claude, Gemini, etc.
+
+### 📋 Planned Features
+
 - [ ] **09-release-plan** step (CI/CD & deployment playbook)
 - [ ] **Context-window management** (summaries / embeddings for large projects)
 - [ ] **Repomix integration** for giant monorepos
@@ -480,7 +519,7 @@ Integration tests spin up a temp project dir and exercise the CLI flow.
 - [ ] **Parallel workflows** - multiple features in development simultaneously
 - [ ] **Enhanced AI provider integrations** (OpenAI API, Anthropic API, etc.)
 
-### Future Considerations
+### 💭 Future Considerations
 
 - Web UI for workflow visualization
 - Team collaboration features
