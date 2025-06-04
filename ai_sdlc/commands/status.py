@@ -18,7 +18,9 @@ def run_status(args: list[str] | None = None) -> None:
     if not lock:
         print("none – create one with `aisdlc new`")
         return
-    assert "slug" in lock and "current" in lock
+    if "slug" not in lock or "current" not in lock:
+        print("none – invalid lock file, create one with `aisdlc new`")
+        return
     slug = lock["slug"]
     cur = lock["current"]
     idx = steps.index(cur)

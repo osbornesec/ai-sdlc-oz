@@ -25,7 +25,7 @@ class TestContext7FinalCoverage:
 
         mock_response = AsyncMock()
         mock_response.status_code = 200
-        mock_response.headers = {'content-type': 'text/event-stream'}
+        mock_response.headers = {"content-type": "text/event-stream"}
 
         # Simulate connection reset during iteration
         async def aiter_lines():
@@ -45,16 +45,16 @@ class TestContext7FinalCoverage:
 
         mock_response = AsyncMock()
         mock_response.status_code = 200
-        mock_response.headers = {'content-type': 'text/event-stream'}
+        mock_response.headers = {"content-type": "text/event-stream"}
 
         async def aiter_lines():
-            yield b'data: {invalid json}\n'
+            yield b"data: {invalid json}\n"
             yield b'data: {"valid": "data"}\n'
 
         mock_response.aiter_lines = aiter_lines
 
         events = []
-        with patch('ai_sdlc.services.context7_client.logger') as mock_logger:
+        with patch("ai_sdlc.services.context7_client.logger") as mock_logger:
             async for event in client._sse_reader(mock_response):
                 events.append(event)
 
@@ -70,12 +70,12 @@ class TestContext7FinalCoverage:
         mock_client = AsyncMock()
         mock_response = AsyncMock()
         mock_response.status_code = 200
-        mock_response.headers = {'content-type': 'application/json'}
+        mock_response.headers = {"content-type": "application/json"}
         mock_response.json.return_value = {"error": "Not SSE"}
 
         mock_client.post.return_value = mock_response
 
-        with patch.object(client, '_ensure_client', return_value=mock_client):
+        with patch.object(client, "_ensure_client", return_value=mock_client):
             with pytest.raises(Context7ClientError, match="Unexpected response"):
                 await client._execute_tool("test-tool", {})
 
@@ -94,7 +94,7 @@ class TestContext7FinalCoverage:
 
         mock_client.post.return_value = mock_response
 
-        with patch.object(client, '_ensure_client', return_value=mock_client):
+        with patch.object(client, "_ensure_client", return_value=mock_client):
             with pytest.raises(Context7ClientError, match="HTTP error"):
                 await client._execute_tool("test-tool", {})
 
@@ -105,7 +105,7 @@ class TestContext7FinalCoverage:
 
         mock_response = {"result": {"content": [{"text": "Docs about hooks"}]}}
 
-        with patch.object(client, '_execute_tool', return_value=mock_response):
+        with patch.object(client, "_execute_tool", return_value=mock_response):
             result = await client.get_library_docs("/react/react", topic="hooks")
             assert result == "Docs about hooks"
 
@@ -131,14 +131,18 @@ class TestContext7FinalCoverage:
         async def mock_execute():
             return {
                 "result": {
-                    "content": [{
-                        "text": "----------\n- Title: Test\n- Context7-compatible library ID: /test/lib\n----------"
-                    }]
+                    "content": [
+                        {
+                            "text": "----------\n- Title: Test\n- Context7-compatible library ID: /test/lib\n----------"
+                        }
+                    ]
                 }
             }
 
-        with patch.object(client, '_execute_tool_with_retry', return_value=mock_execute()):
-            with patch('asyncio.run') as mock_run:
+        with patch.object(
+            client, "_execute_tool_with_retry", return_value=mock_execute()
+        ):
+            with patch("asyncio.run") as mock_run:
                 mock_run.return_value = "/test/lib"
                 result = client.resolve_library_id("test")
                 assert result == "/test/lib"
@@ -147,7 +151,7 @@ class TestContext7FinalCoverage:
         """Test sync get_library_docs method."""
         client = Context7Client(api_key="test-key-1234567890")
 
-        with patch('asyncio.run') as mock_run:
+        with patch("asyncio.run") as mock_run:
             mock_run.return_value = "Test docs"
             result = client.get_library_docs("/test/lib")
             assert result == "Test docs"
@@ -158,14 +162,18 @@ class TestContext7FinalCoverage:
         service = Context7Service(Path("/tmp"))
 
         # Create mock mappings
-        with patch.object(service, 'step_library_mappings', {
-            '03-system-template': ['fastapi', 'sqlalchemy'],
-            '04-systems-patterns': ['redis', 'celery']
-        }):
+        with patch.object(
+            service,
+            "step_library_mappings",
+            {
+                "03-system-template": ["fastapi", "sqlalchemy"],
+                "04-systems-patterns": ["redis", "celery"],
+            },
+        ):
             # Test getting libraries for a specific step
-            libs = service.get_step_specific_libraries('03-system-template')
-            assert 'fastapi' in libs
-            assert 'sqlalchemy' in libs
+            libs = service.get_step_specific_libraries("03-system-template")
+            assert "fastapi" in libs
+            assert "sqlalchemy" in libs
 
     def test_service_library_in_text_check(self):
         """Test library detection in text."""
@@ -175,16 +183,16 @@ class TestContext7FinalCoverage:
 
         # Should detect react, typescript, and next.js
         libraries = service.extract_libraries_from_text(text)
-        assert 'react' in libraries
-        assert 'typescript' in libraries
+        assert "react" in libraries
+        assert "typescript" in libraries
 
     def test_service_format_docs_with_finalized_library(self):
         """Test formatting docs when library is finalized."""
         service = Context7Service(Path("/tmp"))
 
-        docs = service._format_library_docs_section({
-            'pytest': '# PyTest Documentation\n\nTesting framework docs'
-        })
+        docs = service._format_library_docs_section(
+            {"pytest": "# PyTest Documentation\n\nTesting framework docs"}
+        )
 
         assert "### Pytest Documentation" in docs
         assert "# PyTest Documentation" in docs
@@ -198,17 +206,23 @@ class TestContext7FinalCoverage:
         cache_file = temp_dir / "pytest_docs.json"
         cache_file.write_text('{"content": "cached", "timestamp": 9999999999}')
 
-        with patch('pathlib.Path.read_text', side_effect=OSError("Disk error")):
-            with patch.object(service.client, 'get_library_docs', return_value="fresh docs"):
-                result = service.enrich_prompt("Test prompt", "test-step", "import pytest")
+        with patch("pathlib.Path.read_text", side_effect=OSError("Disk error")):
+            with patch.object(
+                service.client, "get_library_docs", return_value="fresh docs"
+            ):
+                result = service.enrich_prompt(
+                    "Test prompt", "test-step", "import pytest"
+                )
                 assert "fresh docs" in result
 
     def test_service_enrich_prompt_client_returns_none(self, temp_dir):
         """Test enrich_prompt when client returns None."""
         service = Context7Service(temp_dir)
 
-        with patch.object(service.client, 'resolve_library_id', return_value=None):
-            result = service.enrich_prompt("Test prompt", "test-step", "import unknown_lib")
+        with patch.object(service.client, "resolve_library_id", return_value=None):
+            result = service.enrich_prompt(
+                "Test prompt", "test-step", "import unknown_lib"
+            )
             assert "Could not resolve library: unknown_lib" in result
 
     def test_service_extract_libraries_for_step_io_error(self, temp_dir):
@@ -220,8 +234,8 @@ class TestContext7FinalCoverage:
         step_file = workdir / "00-idea-test.md"
         step_file.write_text("content")
 
-        with patch('pathlib.Path.read_text', side_effect=OSError("Cannot read")):
-            with patch('ai_sdlc.services.context7_service.logger') as mock_logger:
+        with patch("pathlib.Path.read_text", side_effect=OSError("Cannot read")):
+            with patch("ai_sdlc.services.context7_service.logger") as mock_logger:
                 result = service.extract_libraries_for_step(
                     workdir, ["00-idea"], 0, "test"
                 )
@@ -234,7 +248,7 @@ class TestContext7FinalCoverage:
 
         # Ensure no event loop is running
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             pytest.skip("Event loop is already running")
         except RuntimeError:
             pass

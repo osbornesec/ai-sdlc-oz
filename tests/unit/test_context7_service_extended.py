@@ -17,12 +17,14 @@ class TestContext7ServiceExtended:
         service = Context7Service(cache_dir=temp_project_dir)
 
         # Create lock file
-        lock_file = temp_project_dir / '.lock'
-        lock_file.write_text('')
+        lock_file = temp_project_dir / ".lock"
+        lock_file.write_text("")
 
         # Mock fcntl to always raise BlockingIOError
-        with patch('fcntl.flock', side_effect=BlockingIOError):
-            with patch('time.time', side_effect=[0, 1, 2, 3, 4, 5, 6]):  # Simulate time passing
+        with patch("fcntl.flock", side_effect=BlockingIOError):
+            with patch(
+                "time.time", side_effect=[0, 1, 2, 3, 4, 5, 6]
+            ):  # Simulate time passing
                 with pytest.raises(TimeoutError, match="Could not acquire cache lock"):
                     service._acquire_lock(timeout=5)
 
@@ -35,14 +37,16 @@ class TestContext7ServiceExtended:
 
         captured = capsys.readouterr()
         # Should log warning but not raise
-        assert "Error releasing lock" in captured.out or True  # Logger might not output to stdout
+        assert (
+            "Error releasing lock" in captured.out or True
+        )  # Logger might not output to stdout
 
     def test_load_cache_index_corrupted(self, temp_project_dir):
         """Test loading corrupted cache index."""
         service = Context7Service(cache_dir=temp_project_dir)
 
         # Create corrupted index
-        index_file = temp_project_dir / 'index.json'
+        index_file = temp_project_dir / "index.json"
         index_file.write_text('{"invalid json}')
 
         # Should return empty dict and not raise
@@ -54,11 +58,11 @@ class TestContext7ServiceExtended:
         service = Context7Service(cache_dir=temp_project_dir)
 
         # Create valid index
-        index_file = temp_project_dir / 'index.json'
+        index_file = temp_project_dir / "index.json"
         index_file.write_text('{"test": "data"}')
 
         # Mock acquire_lock to timeout
-        with patch.object(service, '_acquire_lock', side_effect=TimeoutError):
+        with patch.object(service, "_acquire_lock", side_effect=TimeoutError):
             result = service._load_cache_index()
             assert result == {}
 
@@ -68,12 +72,12 @@ class TestContext7ServiceExtended:
         service.cache_index = {"test": "data"}
 
         # Mock acquire_lock to timeout
-        with patch.object(service, '_acquire_lock', side_effect=TimeoutError):
+        with patch.object(service, "_acquire_lock", side_effect=TimeoutError):
             service._save_cache_index()
 
         # Should not raise, just log error
         # Index file should not be created
-        index_file = temp_project_dir / 'index.json'
+        index_file = temp_project_dir / "index.json"
         assert not index_file.exists()
 
     def test_is_cache_valid_missing_timestamp(self, temp_project_dir):
@@ -91,7 +95,7 @@ class TestContext7ServiceExtended:
         old_time = datetime.now() - timedelta(days=8)
         cache_entry: CacheEntry = {
             "timestamp": old_time.isoformat(),
-            "library_id": "/test/lib"
+            "library_id": "/test/lib",
         }
         assert not service._is_cache_valid(cache_entry)
 
@@ -102,12 +106,12 @@ class TestContext7ServiceExtended:
         # Should not match 'reactive' when looking for 'react'
         text = "Using reactive programming with RxJS"
         libs = service.extract_libraries_from_text(text)
-        assert 'react' not in libs
+        assert "react" not in libs
 
         # Should match 'react' as whole word
         text = "Building with React and Redux"
         libs = service.extract_libraries_from_text(text)
-        assert 'react' in libs
+        assert "react" in libs
 
     def test_extract_libraries_all_variants(self, temp_project_dir):
         """Test library extraction with all variant forms."""
@@ -116,11 +120,11 @@ class TestContext7ServiceExtended:
         # Test various forms
         texts = [
             "Using FastAPI framework",  # Direct match
-            "Built with fast-api",      # Hyphenated variant
-            "Deployed on fast_api",     # Underscore variant
-            "Testing with PyTest",      # Case variant
-            "Database: PostgreSQL",     # Direct match
-            "Using postgres db",        # Variant
+            "Built with fast-api",  # Hyphenated variant
+            "Deployed on fast_api",  # Underscore variant
+            "Testing with PyTest",  # Case variant
+            "Database: PostgreSQL",  # Direct match
+            "Using postgres db",  # Variant
         ]
 
         for text in texts:
@@ -139,7 +143,7 @@ class TestContext7ServiceExtended:
         # Update cache index
         service.cache_index[cache_key] = {
             "timestamp": datetime.now().isoformat(),
-            "library_id": "/pytest-dev/pytest"
+            "library_id": "/pytest-dev/pytest",
         }
         service._save_cache_index()
 
@@ -147,8 +151,10 @@ class TestContext7ServiceExtended:
         prompt = "Generate tests"
         previous_content = "Using pytest for testing"
 
-        with patch.object(service.client, 'resolve_library_id', new_callable=AsyncMock):
-            with patch.object(service.client, 'get_library_docs', new_callable=AsyncMock):
+        with patch.object(service.client, "resolve_library_id", new_callable=AsyncMock):
+            with patch.object(
+                service.client, "get_library_docs", new_callable=AsyncMock
+            ):
                 enriched = service.enrich_prompt(prompt, "01-prd", previous_content)
 
         # Should use cached content
@@ -166,11 +172,19 @@ class TestContext7ServiceExtended:
 
         mock_docs = "# Test Documentation"
 
-        with patch.object(service.client, 'resolve_library_id', new_callable=AsyncMock,
-                         return_value=[{"library_id": "/test/lib"}]):
-            with patch.object(service.client, 'get_library_docs', new_callable=AsyncMock,
-                             return_value=mock_docs):
-                with patch.object(service, '_acquire_lock', side_effect=TimeoutError):
+        with patch.object(
+            service.client,
+            "resolve_library_id",
+            new_callable=AsyncMock,
+            return_value=[{"library_id": "/test/lib"}],
+        ):
+            with patch.object(
+                service.client,
+                "get_library_docs",
+                new_callable=AsyncMock,
+                return_value=mock_docs,
+            ):
+                with patch.object(service, "_acquire_lock", side_effect=TimeoutError):
                     enriched = service.enrich_prompt(prompt, "01-prd", previous_content)
 
         # Should still work, just without caching
@@ -195,12 +209,22 @@ class TestContext7ServiceExtended:
         prompt = "Design the system"
         previous_content = "Basic app"  # No libraries mentioned
 
-        with patch.object(service.client, 'resolve_library_id', new_callable=AsyncMock,
-                         return_value=[{"library_id": "/facebook/react"}]):
-            with patch.object(service.client, 'get_library_docs', new_callable=AsyncMock,
-                             return_value="# React Docs"):
+        with patch.object(
+            service.client,
+            "resolve_library_id",
+            new_callable=AsyncMock,
+            return_value=[{"library_id": "/facebook/react"}],
+        ):
+            with patch.object(
+                service.client,
+                "get_library_docs",
+                new_callable=AsyncMock,
+                return_value="# React Docs",
+            ):
                 # For 03-system-template, should include React even if not mentioned
-                enriched = service.enrich_prompt(prompt, "03-system-template", previous_content)
+                enriched = service.enrich_prompt(
+                    prompt, "03-system-template", previous_content
+                )
 
         assert "React Docs" in enriched
 
@@ -211,8 +235,12 @@ class TestContext7ServiceExtended:
         prompt = "Test prompt"
         previous_content = "Using pytest"
 
-        with patch.object(service.client, 'resolve_library_id', new_callable=AsyncMock,
-                         return_value=[]):  # No results
+        with patch.object(
+            service.client,
+            "resolve_library_id",
+            new_callable=AsyncMock,
+            return_value=[],
+        ):  # No results
             enriched = service.enrich_prompt(prompt, "01-prd", previous_content)
 
         # Should include placeholder
@@ -225,10 +253,18 @@ class TestContext7ServiceExtended:
         prompt = "Test prompt"
         previous_content = "Using pytest"
 
-        with patch.object(service.client, 'resolve_library_id', new_callable=AsyncMock,
-                         return_value=[{"library_id": "/pytest-dev/pytest"}]):
-            with patch.object(service.client, 'get_library_docs', new_callable=AsyncMock,
-                             return_value=""):  # Empty docs
+        with patch.object(
+            service.client,
+            "resolve_library_id",
+            new_callable=AsyncMock,
+            return_value=[{"library_id": "/pytest-dev/pytest"}],
+        ):
+            with patch.object(
+                service.client,
+                "get_library_docs",
+                new_callable=AsyncMock,
+                return_value="",
+            ):  # Empty docs
                 enriched = service.enrich_prompt(prompt, "01-prd", previous_content)
 
         # Should include placeholder
@@ -241,10 +277,18 @@ class TestContext7ServiceExtended:
         prompt = "Before <context7_docs>placeholder</context7_docs> After"
         previous_content = "Using pytest"
 
-        with patch.object(service.client, 'resolve_library_id', new_callable=AsyncMock,
-                         return_value=[{"library_id": "/test/lib"}]):
-            with patch.object(service.client, 'get_library_docs', new_callable=AsyncMock,
-                             return_value="# Docs"):
+        with patch.object(
+            service.client,
+            "resolve_library_id",
+            new_callable=AsyncMock,
+            return_value=[{"library_id": "/test/lib"}],
+        ):
+            with patch.object(
+                service.client,
+                "get_library_docs",
+                new_callable=AsyncMock,
+                return_value="# Docs",
+            ):
                 enriched = service.enrich_prompt(prompt, "01-prd", previous_content)
 
         # Should replace placeholder
@@ -259,7 +303,7 @@ class TestContext7ServiceExtended:
         library_docs = {
             "pytest": "# PyTest Docs\nTesting framework",
             "django": "# Django Docs\nWeb framework",
-            "numpy": "# NumPy Docs\nNumerical computing"
+            "numpy": "# NumPy Docs\nNumerical computing",
         }
 
         result = service.format_library_docs_section(library_docs)
@@ -278,7 +322,9 @@ class TestContext7ServiceExtended:
         service = Context7Service(cache_dir=temp_project_dir)
 
         detected_libs = ["react", "typescript"]
-        output = service.create_context_command_output("03-system-template", detected_libs)
+        output = service.create_context_command_output(
+            "03-system-template", detected_libs
+        )
 
         # Should include recommendations
         assert "Recommended for step '03-system-template'" in output
@@ -292,8 +338,8 @@ class TestContext7ServiceExtended:
         for patterns in service.library_patterns.values():
             for pattern in patterns:
                 # Should be able to use pattern.search directly
-                assert hasattr(pattern, 'search')
-                assert hasattr(pattern, 'match')
+                assert hasattr(pattern, "search")
+                assert hasattr(pattern, "match")
 
     def test_async_run_in_executor(self, temp_project_dir):
         """Test async operations run in executor."""
@@ -304,11 +350,19 @@ class TestContext7ServiceExtended:
         mock_future = Mock()
         mock_loop.run_in_executor.return_value = mock_future
 
-        with patch('asyncio.get_event_loop', return_value=mock_loop):
-            with patch.object(service.client, 'resolve_library_id', new_callable=AsyncMock,
-                             return_value=[{"library_id": "/test/lib"}]):
-                with patch.object(service.client, 'get_library_docs', new_callable=AsyncMock,
-                                 return_value="# Docs"):
+        with patch("asyncio.get_event_loop", return_value=mock_loop):
+            with patch.object(
+                service.client,
+                "resolve_library_id",
+                new_callable=AsyncMock,
+                return_value=[{"library_id": "/test/lib"}],
+            ):
+                with patch.object(
+                    service.client,
+                    "get_library_docs",
+                    new_callable=AsyncMock,
+                    return_value="# Docs",
+                ):
                     service.enrich_prompt("test", "01-prd", "pytest")
 
         # Should use run_in_executor for async operations
@@ -332,10 +386,18 @@ Some details here.
 Footer content
 """
 
-        with patch.object(service.client, 'resolve_library_id', new_callable=AsyncMock,
-                         return_value=[{"library_id": "/test/lib"}]):
-            with patch.object(service.client, 'get_library_docs', new_callable=AsyncMock,
-                             return_value="# Docs"):
+        with patch.object(
+            service.client,
+            "resolve_library_id",
+            new_callable=AsyncMock,
+            return_value=[{"library_id": "/test/lib"}],
+        ):
+            with patch.object(
+                service.client,
+                "get_library_docs",
+                new_callable=AsyncMock,
+                return_value="# Docs",
+            ):
                 enriched = service.enrich_prompt(prompt, "01-prd", "Using pytest")
 
         # Original structure should be preserved

@@ -156,7 +156,9 @@ def _validate_workflow_state(
         print("❌  No active workstream. Run `aisdlc new` first.")
         sys.exit(1)
 
-    assert "slug" in lock and "current" in lock
+    if "slug" not in lock or "current" not in lock:
+        print("❌  Invalid lock file. Run 'aisdlc status' to regenerate.")
+        sys.exit(1)
 
     slug = lock["slug"]
     steps = conf["steps"]

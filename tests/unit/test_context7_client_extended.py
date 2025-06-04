@@ -1,7 +1,6 @@
 # pyright: reportMissingImports=false
 """Extended unit tests for Context7 client to achieve 100% coverage."""
 
-import asyncio
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
@@ -11,7 +10,6 @@ from ai_sdlc.services.context7_client import (
     CODE_BLOCK_PATTERN,
     Context7Client,
     Context7ClientError,
-    Context7TimeoutError,
 )
 
 
@@ -309,7 +307,7 @@ import library
 library.do_something()
 ```
 
-TITLE: Advanced Usage  
+TITLE: Advanced Usage
 DESCRIPTION: More complex examples
 
 You can also do advanced things.

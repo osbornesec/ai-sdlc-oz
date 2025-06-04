@@ -29,7 +29,6 @@ class Context7Service:
         self._lock_handle: portalocker.Lock | None = None
         self.cache_index = self._load_cache_index()
         self.client = Context7Client()
-        self._lock_handle: portalocker.Lock | None = None
 
     def _acquire_lock(self, timeout: int = 10) -> None:
         """Acquire a file lock with a timeout."""

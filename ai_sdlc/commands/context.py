@@ -95,7 +95,9 @@ def run_context(args: list[str] | None) -> None:
         return
 
     # Get current step and content
-    assert "slug" in lock and "current" in lock
+    if "slug" not in lock or "current" not in lock:
+        print("❌  Invalid lock file. Run 'aisdlc status' to regenerate.")
+        sys.exit(1)
     slug = lock["slug"]
     current_step = lock["current"]
     steps = config["steps"]

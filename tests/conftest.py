@@ -1,4 +1,5 @@
 """Test configuration and shared fixtures."""
+
 # pyright: reportMissingImports=false
 from pathlib import Path
 
