@@ -262,26 +262,37 @@ The AI-SDLC workflow follows an 8-step process from idea to tests:
 
 ```mermaid
 flowchart TD
-    I[01-idea]-->P1[02-prd]-->P2[03-prd-plus]-->A[04-architecture]
-    A-->SP[05-system-patterns]-->T[06-tasks]-->TP[07-tasks-plus]-->TESTS[08-tests]
+    I[00-idea]-->P1[01-prd]-->P2[02-prd-plus]-->A[03-system-template]
+    A-->SP[04-systems-patterns]-->T[05-tasks]-->TP[06-tasks-plus]-->TESTS[07-tests]
 
-    %% Iteration loop for steps 1-5
-    CHAT[💬 Iterate with AI Chat]
-    I -.-> CHAT
-    P1 -.-> CHAT
-    P2 -.-> CHAT
-    A -.-> CHAT
-    SP -.-> CHAT
-    CHAT -.-> I
-    CHAT -.-> P1
-    CHAT -.-> P2
-    CHAT -.-> A
-    CHAT -.-> SP
+    %% AI interaction for steps 0-4 (idea, prd, prd-plus, arch, patterns)
+    INTERACTIVE_AI[💬 AI Interaction<br/>(Manual Prompt OR Direct API Call)]
+    I -.-> INTERACTIVE_AI
+    P1 -.-> INTERACTIVE_AI
+    P2 -.-> INTERACTIVE_AI
+    A -.-> INTERACTIVE_AI
+    SP -.-> INTERACTIVE_AI
+    INTERACTIVE_AI -.-> I
+    INTERACTIVE_AI -.-> P1
+    INTERACTIVE_AI -.-> P2
+    INTERACTIVE_AI -.-> A
+    INTERACTIVE_AI -.-> SP
 
-    %% Agent mode for steps 7-8
-    AGENT[🤖 Use AI Agent Mode]
-    TP --- AGENT
-    TESTS --- AGENT
+    %% Step 05-tasks (T) can also use AI for drafting or review
+    T -.-> INTERACTIVE_AI
+    INTERACTIVE_AI -.-> T
+
+    %% AI processing for steps 6-7 (tasks-plus, tests)
+    AUTOMATED_AI[🤖 AI Processing<br/>(Manual Prompt OR Direct API Call)]
+    TP -.-> AUTOMATED_AI
+    TESTS -.-> AUTOMATED_AI
+    AUTOMATED_AI -.-> TP  // Link for potential regeneration/iteration
+    AUTOMATED_AI -.-> TESTS // Link for potential regeneration/iteration
+
+    classDef stepStyle fill:#ECECFF,stroke:#999,stroke-width:2px,color:#000
+    class I,P1,P2,A,SP,T,TP,TESTS stepStyle
+    classDef aiNodeStyle fill:#DFFFEF,stroke:#999,stroke-width:2px,color:#000
+    class INTERACTIVE_AI,AUTOMATED_AI aiNodeStyle
 ```
 
 ### 🎯 Workflow Modes
@@ -325,26 +336,37 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    I[01-idea]-->P1[02-prd]-->P2[03-prd-plus]-->A[04-architecture]
-    A-->SP[05-system-patterns]-->T[06-tasks]-->TP[07-tasks-plus]-->TESTS[08-tests]
+    I[00-idea]-->P1[01-prd]-->P2[02-prd-plus]-->A[03-system-template]
+    A-->SP[04-systems-patterns]-->T[05-tasks]-->TP[06-tasks-plus]-->TESTS[07-tests]
 
-    %% Iteration loop for steps 1-5
-    CHAT[💬 Iterate with AI Chat]
-    I -.-> CHAT
-    P1 -.-> CHAT
-    P2 -.-> CHAT
-    A -.-> CHAT
-    SP -.-> CHAT
-    CHAT -.-> I
-    CHAT -.-> P1
-    CHAT -.-> P2
-    CHAT -.-> A
-    CHAT -.-> SP
+    %% AI interaction for steps 0-4 (idea, prd, prd-plus, arch, patterns)
+    INTERACTIVE_AI[💬 AI Interaction<br/>(Manual Prompt OR Direct API Call)]
+    I -.-> INTERACTIVE_AI
+    P1 -.-> INTERACTIVE_AI
+    P2 -.-> INTERACTIVE_AI
+    A -.-> INTERACTIVE_AI
+    SP -.-> INTERACTIVE_AI
+    INTERACTIVE_AI -.-> I
+    INTERACTIVE_AI -.-> P1
+    INTERACTIVE_AI -.-> P2
+    INTERACTIVE_AI -.-> A
+    INTERACTIVE_AI -.-> SP
 
-    %% Agent mode for steps 7-8
-    AGENT[🤖 Use AI Agent Mode]
-    TP --- AGENT
-    TESTS --- AGENT
+    %% Step 05-tasks (T) can also use AI for drafting or review
+    T -.-> INTERACTIVE_AI
+    INTERACTIVE_AI -.-> T
+
+    %% AI processing for steps 6-7 (tasks-plus, tests)
+    AUTOMATED_AI[🤖 AI Processing<br/>(Manual Prompt OR Direct API Call)]
+    TP -.-> AUTOMATED_AI
+    TESTS -.-> AUTOMATED_AI
+    AUTOMATED_AI -.-> TP  // Link for potential regeneration/iteration
+    AUTOMATED_AI -.-> TESTS // Link for potential regeneration/iteration
+
+    classDef stepStyle fill:#ECECFF,stroke:#999,stroke-width:2px,color:#000
+    class I,P1,P2,A,SP,T,TP,TESTS stepStyle
+    classDef aiNodeStyle fill:#DFFFEF,stroke:#999,stroke-width:2px,color:#000
+    class INTERACTIVE_AI,AUTOMATED_AI aiNodeStyle
 ```
 
 **Workflow modes explained:**
