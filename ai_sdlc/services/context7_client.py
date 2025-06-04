@@ -80,7 +80,7 @@ class Context7Client:
         if not self.api_key:
             logger.warning("No Context7 API key provided. Some features may not work.")
 
-    def _is_valid_api_key(self, api_key: str) -> bool:
+    def _is_valid_api_key(self, api_key: str | None) -> bool:
         """Validate API key format - basic checks for reasonable format."""
         # Many tests use short keys like "env-key" so allow keys of length 6+.
         # Only very short keys should be considered invalid.
@@ -157,6 +157,10 @@ class Context7Client:
                 self._loop.close()
         self._loop = None
         self._closed = True
+
+    async def close(self) -> None:
+        """Alias for aclose for backwards compatibility."""
+        await self.aclose()
 
     async def _execute_tool_with_retry(
         self, tool_name: str, parameters: dict[str, Any]

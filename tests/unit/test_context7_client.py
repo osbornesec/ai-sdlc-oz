@@ -1,3 +1,4 @@
+# pyright: reportMissingImports=false
 """Unit tests for Context7 client."""
 
 import asyncio
@@ -226,7 +227,6 @@ class TestContext7Client:
             new=AsyncMock(return_value=mock_response),
         ) as mock_retry:
             result = client.resolve_library_id("react")
-
         assert result == "/facebook/react"
         mock_retry.assert_called_once_with(
             "resolve-library-id", {"libraryName": "react"}

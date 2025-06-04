@@ -1,3 +1,4 @@
+# pyright: reportMissingImports=false
 """Integration tests for the context command."""
 
 import json

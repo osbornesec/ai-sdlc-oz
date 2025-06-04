@@ -29,6 +29,7 @@ class Context7Service:
         self._lock_handle: portalocker.Lock | None = None
         self.cache_index = self._load_cache_index()
         self.client = Context7Client()
+        self._lock_handle: portalocker.Lock | None = None
 
     def _acquire_lock(self, timeout: int = 10) -> None:
         """Acquire a file lock with a timeout."""
@@ -47,8 +48,9 @@ class Context7Service:
     def _release_lock(self) -> None:
         """Release the file lock."""
         try:
-            if self._lock_handle is not None:
-                self._lock_handle.release()
+            handle = getattr(self, "_lock_handle", None)
+            if handle is not None:
+                handle.release()
                 self._lock_handle = None
         except Exception as e:
             logger.warning(f"Error releasing lock: {e}")

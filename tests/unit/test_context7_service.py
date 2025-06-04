@@ -1,3 +1,4 @@
+# pyright: reportMissingImports=false
 """Unit tests for Context7 service."""
 
 import tempfile
