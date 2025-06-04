@@ -29,7 +29,7 @@ jobs:
 
       - name: Run linting
         run: |
-          uv run ruff check . --format=github
+          uv run ruff check . --output-format=github
           uv run ruff format --check .
 
       - name: Run type checking
