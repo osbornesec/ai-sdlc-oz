@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import re
 from typing import Any
 from urllib.parse import urlencode
@@ -33,26 +32,16 @@ class Context7TimeoutError(Context7ClientError):
     pass
 
 
-class Context7AuthError(Context7ClientError):
-    """Authentication error for Context7 operations."""
-    pass
-
-
 class Context7Client:
     """Context7 client that properly handles SSE connections with async context manager support."""
 
-    def __init__(self, base_url: str = "https://mcp.context7.com", api_key: str | None = None):
+    def __init__(self, base_url: str = "https://mcp.context7.com"):
         """Initialize Context7 client.
 
         Args:
             base_url: The base URL for Context7 API
-            api_key: API key for authentication (defaults to CONTEXT7_API_KEY env var)
-
-        Raises:
-            Context7AuthError: If API key is invalid format
         """
         self.base_url = base_url
-        self.api_key = api_key or os.getenv("CONTEXT7_API_KEY")
         self.timeout = httpx.Timeout(60.0, connect=10.0)
 
         # Configure connection pooling
@@ -65,22 +54,8 @@ class Context7Client:
         # Shared async client and event loop management
         self._client: httpx.AsyncClient | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+        self._own_loop: bool = False
         self._closed = False
-
-        # Validate API key format if provided
-        if self.api_key and not self._is_valid_api_key(self.api_key):
-            logger.warning("Context7 API key appears to be malformed")
-            self.api_key = None
-
-        if not self.api_key:
-            logger.warning("No Context7 API key provided. Some features may not work.")
-
-    def _is_valid_api_key(self, api_key: str) -> bool:
-        """Validate API key format - basic checks for reasonable format."""
-        if not api_key or len(api_key) < 10:
-            return False
-        # Basic check for alphanumeric with some special chars
-        return all(c.isalnum() or c in '-_.' for c in api_key)
 
     async def __aenter__(self) -> Context7Client:
         """Async context manager entry."""
@@ -103,22 +78,36 @@ class Context7Client:
             )
         return self._client
 
+    def _get_client(self) -> httpx.AsyncClient:
+        """Synchronously get or create the underlying HTTP client."""
+        loop = self._ensure_loop()
+        if loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(
+                self._ensure_client(), loop
+            )
+            return future.result()
+        return loop.run_until_complete(self._ensure_client())
+
     def _ensure_loop(self) -> asyncio.AbstractEventLoop:
         """Ensure event loop is available for sync methods."""
         if self._loop is None or self._loop.is_closed():
             try:
                 # Try to get existing loop
                 self._loop = asyncio.get_running_loop()
+                self._own_loop = False
             except RuntimeError:
                 # No running loop, create new one
                 self._loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(self._loop)
+                self._own_loop = True
         return self._loop
 
     async def aclose(self) -> None:
         """Properly close the async client."""
         if self._client and not self._client.is_closed:
             await self._client.aclose()
+        if self._own_loop and self._loop and not self._loop.is_closed():
+            self._loop.close()
         self._closed = True
 
     async def _execute_tool_with_retry(self, tool_name: str, parameters: dict[str, Any]) -> dict[str, Any] | None:
@@ -136,8 +125,8 @@ class Context7Client:
                     await asyncio.sleep(wait_time)
                 else:
                     logger.error(f"All {MAX_RETRIES} attempts failed for {tool_name}")
-            except (httpx.HTTPStatusError, Context7AuthError) as e:
-                # Don't retry on auth or 4xx errors
+            except httpx.HTTPStatusError as e:
+                # Don't retry on 4xx errors
                 logger.error(f"Non-retryable error for {tool_name}: {e}")
                 break
 
@@ -157,7 +146,6 @@ class Context7Client:
 
         Raises:
             Context7TimeoutError: If request times out
-            Context7AuthError: If authentication fails
             httpx.HTTPError: For HTTP-related errors
         """
         params = {"tool": tool_name}
@@ -165,7 +153,7 @@ class Context7Client:
         sse_url = f"{self.base_url}/sse?{urlencode(params)}"
 
         # Use the shared client with connection pooling
-        client = await self._ensure_client()
+        client = self._get_client()
 
         endpoint = None
         session_id = None
@@ -174,13 +162,9 @@ class Context7Client:
         async def sse_reader() -> None:
             """Keep SSE connection alive and read data."""
             headers: dict[str, str] = {}
-            if self.api_key:
-                headers["Authorization"] = f"Bearer {self.api_key}"
 
             try:
                 async with client.stream("GET", sse_url, headers=headers) as response:
-                    if response.status_code == 401:
-                        raise Context7AuthError("Invalid API key")
                     response.raise_for_status()
 
                     async for line in response.aiter_lines():
@@ -190,8 +174,6 @@ class Context7Client:
                             endpoint_data = line[6:]
                             await result_queue.put(("endpoint", endpoint_data))
             except httpx.HTTPStatusError as e:
-                if e.response.status_code == 401:
-                    raise Context7AuthError("Invalid API key") from e
                 raise
 
         # Start SSE reader
@@ -227,8 +209,6 @@ class Context7Client:
                 "Content-Type": "application/json",
                 "MCP-Session-Id": session_id
             }
-            if self.api_key:
-                headers["Authorization"] = f"Bearer {self.api_key}"
 
             try:
                 post_response = await client.post(
@@ -237,9 +217,7 @@ class Context7Client:
                     headers=headers
                 )
 
-                if post_response.status_code == 401:
-                    raise Context7AuthError("Invalid API key")
-                elif post_response.status_code in RETRY_STATUS_CODES:
+                if post_response.status_code in RETRY_STATUS_CODES:
                     # Let retry logic handle these
                     post_response.raise_for_status()
 
@@ -401,8 +379,8 @@ class Context7Client:
 
             return None
 
-        except (Context7TimeoutError, Context7AuthError):
-            logger.error(f"Context7 error resolving library ID for: {library_name}")
+        except Context7TimeoutError:
+            logger.error(f"Context7 timeout resolving library ID for: {library_name}")
             return None
         except Exception as e:
             logger.error(f"Error resolving library ID for {library_name}: {e}", exc_info=True)
@@ -479,8 +457,8 @@ class Context7Client:
 
             return ""
 
-        except (Context7TimeoutError, Context7AuthError):
-            logger.error(f"Context7 error fetching docs for library: {library_id}")
+        except Context7TimeoutError:
+            logger.error(f"Context7 timeout fetching docs for library: {library_id}")
             return ""
         except Exception as e:
             logger.error(f"Error fetching docs for library {library_id}: {e}", exc_info=True)

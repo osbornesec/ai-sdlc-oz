@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import fcntl
+from filelock import FileLock, Timeout
 import json
 import logging
 import re
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -25,31 +24,21 @@ class Context7Service:
         self.cache_dir.mkdir(exist_ok=True)
         self.cache_index_file = self.cache_dir / "index.json"
         self.cache_lock_file = self.cache_dir / ".lock"
+        self.cache_lock = FileLock(str(self.cache_lock_file))
         self.cache_index = self._load_cache_index()
         self.client = Context7Client()
 
     def _acquire_lock(self, timeout: int = 10) -> None:
-        """Acquire a file lock with exponential backoff."""
-        start_time = time.time()
-        self.cache_lock_file.touch(exist_ok=True)
-        backoff = 0.01  # Start with 10ms
-
-        with open(self.cache_lock_file, 'r+') as lock_file:
-            while True:
-                try:
-                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    return
-                except OSError as e:
-                    if time.time() - start_time > timeout:
-                        raise TimeoutError("Could not acquire cache lock") from e
-                    time.sleep(min(backoff, 1.0))  # Cap at 1 second
-                    backoff *= 2  # Exponential backoff
+        """Acquire the cache file lock."""
+        try:
+            self.cache_lock.acquire(timeout=timeout)
+        except Timeout:
+            raise TimeoutError("Could not acquire cache lock")
 
     def _release_lock(self) -> None:
-        """Release the file lock."""
+        """Release the cache file lock."""
         try:
-            with open(self.cache_lock_file, 'r+') as lock_file:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            self.cache_lock.release()
         except Exception as e:
             logger.warning(f"Error releasing lock: {e}")
 
