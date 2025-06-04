@@ -43,14 +43,7 @@ def mock_config_base() -> ConfigDict:
 
 
 @pytest.fixture
-def mock_ai_provider_openai_direct(
-    openai_provider_config: AiProviderConfig,
-) -> AiProviderConfig:
-    # openai_provider_config is from conftest.py or test_ai_service.py if run together
-    # For isolation, define it here or ensure conftest provides it.
-    # Assuming it's available from test_ai_service.py's fixtures for now.
-    # If not, we need to define a similar fixture here.
-    # Let's define a minimal one here for test_next_command's direct use.
+def mock_ai_provider_openai_direct() -> AiProviderConfig:
     return {
         "name": "openai",
         "model": "gpt-3.5-turbo",
@@ -94,9 +87,12 @@ def mock_ai_provider_direct_disabled(
 # Fixture to combine base config with different AI provider configs
 @pytest.fixture
 def mock_config(mock_config_base: ConfigDict, request) -> ConfigDict:
-    # request.param will be the AiProviderConfig
-    # Default to manual if no param is passed, or handle explicitly
-    ai_provider_conf = getattr(request, "param", mock_ai_provider_manual())
+    # request.param will be the fixture name as string
+    # Default to manual if no param is passed
+    if hasattr(request, "param"):
+        ai_provider_conf = request.getfixturevalue(request.param)
+    else:
+        ai_provider_conf = request.getfixturevalue("mock_ai_provider_manual")
     full_config = mock_config_base.copy()
     full_config["ai_provider"] = ai_provider_conf
     return full_config
@@ -104,9 +100,10 @@ def mock_config(mock_config_base: ConfigDict, request) -> ConfigDict:
 
 @pytest.fixture
 def mock_lock() -> LockDict:
+    # Return a fresh copy each time to prevent test contamination
     return {
         "slug": DEFAULT_SLUG,
-        "current": DEFAULT_CURRENT_STEP,
+        "current": DEFAULT_CURRENT_STEP,  # This is "00-setup"
         "created": "2023-01-01T12:00:00Z",
     }
 
@@ -178,8 +175,11 @@ def auto_mock_dependencies(request):  # `request` allows conditional mocking if 
     # `_prepare_file_paths` uses `ROOT / conf["active_dir"]` and `ROOT / conf["prompt_dir"]`.
     # So, utils.ROOT needs to be tmp_path.
 
-    mock_root_util = patch("ai_sdlc.utils.ROOT").start()
-    # We will set mock_root_util in tests via the setup_working_directory fixture, effectively.
+    # Important: ai_sdlc.commands.next imports ROOT at module level, so we need to patch it there too
+    # We'll use patch.object later to set these to actual Path objects
+    # For now, just create the patches but don't start them
+    mock_root_util = None
+    mock_root_next = None
     # No, `auto_mock_dependencies` runs before `setup_working_directory` can set it.
     # This needs careful handling. It's better if `run_next` gets `ROOT` via dependency injection or
     # if tests ensure `utils.ROOT` is patched *before* `run_next` is called.
@@ -192,9 +192,20 @@ def auto_mock_dependencies(request):  # `request` allows conditional mocking if 
         "apply_context7": mock_context7,
         "generate_text": mock_gen_text,
         "utils_ROOT": mock_root_util,
+        "next_ROOT": mock_root_next,
     }
 
     patch.stopall()  # Stop all patches started with start()
+
+
+# Helper to run tests with properly patched ROOT
+def run_test_with_patched_root(root_path, auto_mock_dependencies, mock_config, mock_lock, test_func):
+    """Helper to run tests with ROOT properly patched to the actual path."""
+    with patch("ai_sdlc.utils.ROOT", root_path), \
+         patch("ai_sdlc.commands.next.ROOT", root_path):
+        auto_mock_dependencies["load_config"].return_value = mock_config
+        auto_mock_dependencies["read_lock"].return_value = mock_lock
+        test_func()
 
 
 # Test Scenarios for run_next()
@@ -202,7 +213,7 @@ def auto_mock_dependencies(request):  # `request` allows conditional mocking if 
 
 @pytest.mark.parametrize(
     "mock_config",
-    [pytest.lazy_fixture("mock_ai_provider_openai_direct")],
+    ["mock_ai_provider_openai_direct"],
     indirect=True,
 )
 def test_run_next_direct_api_call_success(
@@ -213,56 +224,57 @@ def test_run_next_direct_api_call_success(
     capsys: pytest.CaptureFixture,
 ):
     root_path = setup_working_directory
-    auto_mock_dependencies[
-        "utils_ROOT"
-    ].return_value = root_path  # Critical for path resolution
-    auto_mock_dependencies["load_config"].return_value = mock_config
-    auto_mock_dependencies["read_lock"].return_value = mock_lock
+    
+    with patch("ai_sdlc.utils.ROOT", root_path), \
+         patch("ai_sdlc.commands.next.ROOT", root_path):
+        
+        auto_mock_dependencies["load_config"].return_value = mock_config
+        auto_mock_dependencies["read_lock"].return_value = mock_lock
 
-    mock_generate_text_func = auto_mock_dependencies["generate_text"]
-    mock_generate_text_func.return_value = "AI generated content successfully."
+        mock_generate_text_func = auto_mock_dependencies["generate_text"]
+        mock_generate_text_func.return_value = "AI generated content successfully."
 
-    # Set OPENAI_API_KEY_TEST_NEXT for this test environment
-    with patch.dict(
-        os.environ, {mock_config["ai_provider"]["api_key_env_var"]: "fake_key_for_test"}
-    ):
-        run_next()
+        # Set OPENAI_API_KEY_TEST_NEXT for this test environment
+        with patch.dict(
+            os.environ, {mock_config["ai_provider"]["api_key_env_var"]: "fake_key_for_test"}
+        ):
+            run_next()
 
-    captured = capsys.readouterr()
-    assert "🤖 Attempting to generate text using AI provider: openai..." in captured.out
-    assert "✅ AI successfully generated content and saved to:" in captured.out
+        captured = capsys.readouterr()
+        assert "🤖 Attempting to generate text using AI provider: openai..." in captured.out
+        assert "✅ AI successfully generated content and saved to:" in captured.out
 
-    next_step_file = (
-        root_path
-        / mock_config["active_dir"]
-        / mock_lock["slug"]
-        / f"{DEFAULT_NEXT_STEP}-{mock_lock['slug']}.md"
-    )
-    assert next_step_file.exists()
-    assert next_step_file.read_text() == "AI generated content successfully."
+        next_step_file = (
+            root_path
+            / mock_config["active_dir"]
+            / mock_lock["slug"]
+            / f"{DEFAULT_NEXT_STEP}-{mock_lock['slug']}.md"
+        )
+        assert next_step_file.exists()
+        assert next_step_file.read_text() == "AI generated content successfully."
 
-    prompt_output_file = (
-        root_path
-        / mock_config["active_dir"]
-        / mock_lock["slug"]
-        / f"_prompt-{DEFAULT_NEXT_STEP}.md"
-    )
-    assert not prompt_output_file.exists()  # Should be cleaned up or not created
+        prompt_output_file = (
+            root_path
+            / mock_config["active_dir"]
+            / mock_lock["slug"]
+            / f"_prompt-{DEFAULT_NEXT_STEP}.md"
+        )
+        assert not prompt_output_file.exists()  # Should be cleaned up or not created
 
-    auto_mock_dependencies["write_lock"].assert_called_once_with(
-        {
-            "slug": mock_lock["slug"],
-            "current": DEFAULT_NEXT_STEP,
-            "created": mock_lock["created"],
-        }
-    )
-    # Ensure context7 was called (even if it does nothing)
-    auto_mock_dependencies["apply_context7"].assert_called_once()
+        auto_mock_dependencies["write_lock"].assert_called_once_with(
+            {
+                "slug": mock_lock["slug"],
+                "current": DEFAULT_NEXT_STEP,
+                "created": mock_lock["created"],
+            }
+        )
+        # Ensure context7 was called (even if it does nothing)
+        auto_mock_dependencies["apply_context7"].assert_called_once()
 
 
 @pytest.mark.parametrize(
     "mock_config",
-    [pytest.lazy_fixture("mock_ai_provider_openai_direct")],
+    ["mock_ai_provider_openai_direct"],
     indirect=True,
 )
 @pytest.mark.parametrize(
@@ -292,6 +304,7 @@ def test_run_next_direct_api_call_errors_fallback_to_manual(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
     auto_mock_dependencies["load_config"].return_value = mock_config
     auto_mock_dependencies["read_lock"].return_value = mock_lock
 
@@ -350,7 +363,7 @@ def test_run_next_direct_api_call_errors_fallback_to_manual(
 
 @pytest.mark.parametrize(
     "mock_config",
-    [pytest.lazy_fixture("mock_ai_provider_direct_disabled")],
+    ["mock_ai_provider_direct_disabled"],
     indirect=True,
 )
 def test_run_next_direct_api_calls_disabled(
@@ -362,6 +375,7 @@ def test_run_next_direct_api_calls_disabled(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
     auto_mock_dependencies["load_config"].return_value = mock_config
     auto_mock_dependencies["read_lock"].return_value = mock_lock
 
@@ -394,7 +408,7 @@ def test_run_next_direct_api_calls_disabled(
 
 
 @pytest.mark.parametrize(
-    "mock_config", [pytest.lazy_fixture("mock_ai_provider_manual")], indirect=True
+    "mock_config", ["mock_ai_provider_manual"], indirect=True
 )
 def test_run_next_manual_provider(
     mock_config: ConfigDict,
@@ -404,37 +418,42 @@ def test_run_next_manual_provider(
     capsys: pytest.CaptureFixture,
 ):
     root_path = setup_working_directory
-    auto_mock_dependencies["utils_ROOT"].return_value = root_path
-    auto_mock_dependencies["load_config"].return_value = mock_config
-    auto_mock_dependencies["read_lock"].return_value = mock_lock
+    
+    # Patch ROOT to be the actual path instead of using return_value
+    with patch("ai_sdlc.utils.ROOT", root_path), \
+         patch("ai_sdlc.commands.next.ROOT", root_path):
+        
+        auto_mock_dependencies["load_config"].return_value = mock_config
+        
+        auto_mock_dependencies["read_lock"].return_value = mock_lock
 
-    mock_generate_text_func = auto_mock_dependencies["generate_text"]
+        mock_generate_text_func = auto_mock_dependencies["generate_text"]
 
-    run_next()
+        run_next()
+            
+        captured = capsys.readouterr()
+        # No specific message for "manual mode selected", just straight to prompt generation
+        assert "📝  Generated AI prompt file:" in captured.out
 
-    captured = capsys.readouterr()
-    # No specific message for "manual mode selected", just straight to prompt generation
-    assert "📝  Generated AI prompt file:" in captured.out
+        mock_generate_text_func.assert_not_called()
 
-    mock_generate_text_func.assert_not_called()
+        prompt_output_file = (
+            root_path
+            / mock_config["active_dir"]
+            / mock_lock["slug"]
+            / f"_prompt-{DEFAULT_NEXT_STEP}.md"
+        )
+        assert prompt_output_file.exists()
+        expected_prompt_content = PROMPT_TEMPLATE_CONTENT.replace(
+            PLACEHOLDER, PREV_STEP_CONTENT
+        )
+        assert prompt_output_file.read_text() == expected_prompt_content
 
-    prompt_output_file = (
-        root_path
-        / mock_config["active_dir"]
-        / mock_lock["slug"]
-        / f"_prompt-{DEFAULT_NEXT_STEP}.md"
-    )
-    assert prompt_output_file.exists()
-    expected_prompt_content = PROMPT_TEMPLATE_CONTENT.replace(
-        PLACEHOLDER, PREV_STEP_CONTENT
-    )
-    assert prompt_output_file.read_text() == expected_prompt_content
-
-    auto_mock_dependencies["write_lock"].assert_not_called()
+        auto_mock_dependencies["write_lock"].assert_not_called()
 
 
 @pytest.mark.parametrize(
-    "mock_config", [pytest.lazy_fixture("mock_ai_provider_manual")], indirect=True
+    "mock_config", ["mock_ai_provider_manual"], indirect=True
 )  # Config doesn't matter much here
 def test_run_next_step_file_already_exists(
     mock_config: ConfigDict,
@@ -445,6 +464,7 @@ def test_run_next_step_file_already_exists(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
     auto_mock_dependencies["load_config"].return_value = mock_config
     auto_mock_dependencies["read_lock"].return_value = mock_lock
 
@@ -497,7 +517,7 @@ def test_run_next_step_file_already_exists(
 
 # Test for workflow completion
 @pytest.mark.parametrize(
-    "mock_config", [pytest.lazy_fixture("mock_ai_provider_manual")], indirect=True
+    "mock_config", ["mock_ai_provider_manual"], indirect=True
 )
 def test_run_next_all_steps_complete(
     mock_config: ConfigDict,
@@ -508,11 +528,15 @@ def test_run_next_all_steps_complete(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
     auto_mock_dependencies["load_config"].return_value = mock_config
 
-    # Modify lock to be the last step
-    completed_lock = mock_lock.copy()
-    completed_lock["current"] = DEFAULT_STEPS[-1]  # e.g. "02-impl"
+    # Create a new lock with the last step
+    completed_lock = {
+        "slug": mock_lock["slug"],
+        "current": DEFAULT_STEPS[-1],  # e.g. "02-impl"
+        "created": mock_lock["created"],
+    }
     auto_mock_dependencies["read_lock"].return_value = completed_lock
 
     mock_exit = patch.object(sys, "exit").start()
@@ -529,7 +553,7 @@ def test_run_next_all_steps_complete(
 
 # Test for missing previous step file
 @pytest.mark.parametrize(
-    "mock_config", [pytest.lazy_fixture("mock_ai_provider_manual")], indirect=True
+    "mock_config", ["mock_ai_provider_manual"], indirect=True
 )
 def test_run_next_missing_prev_file(
     mock_config: ConfigDict,
@@ -540,6 +564,7 @@ def test_run_next_missing_prev_file(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
     auto_mock_dependencies["load_config"].return_value = mock_config
     auto_mock_dependencies["read_lock"].return_value = mock_lock
 
@@ -567,7 +592,7 @@ def test_run_next_missing_prev_file(
 
 # Test for missing prompt template file
 @pytest.mark.parametrize(
-    "mock_config", [pytest.lazy_fixture("mock_ai_provider_manual")], indirect=True
+    "mock_config", ["mock_ai_provider_manual"], indirect=True
 )
 def test_run_next_missing_prompt_template_file(
     mock_config: ConfigDict,
@@ -578,6 +603,7 @@ def test_run_next_missing_prompt_template_file(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
     auto_mock_dependencies["load_config"].return_value = mock_config
     auto_mock_dependencies["read_lock"].return_value = mock_lock
 
@@ -602,7 +628,7 @@ def test_run_next_missing_prompt_template_file(
 
 # Test that if ai_provider_config is missing entirely from config, it defaults to manual-like behavior
 @pytest.mark.parametrize(
-    "mock_config", [pytest.lazy_fixture("mock_ai_provider_manual")], indirect=True
+    "mock_config", ["mock_ai_provider_manual"], indirect=True
 )  # Start with a base
 def test_run_next_missing_ai_provider_section_in_config(
     mock_config: ConfigDict,  # This will have ai_provider due to fixture setup
@@ -613,6 +639,7 @@ def test_run_next_missing_ai_provider_section_in_config(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
 
     # Modify the config to remove ai_provider section
     config_no_ai_section = mock_config.copy()
@@ -654,7 +681,7 @@ def test_run_next_missing_ai_provider_section_in_config(
 # Test for `ai_provider_config.get("name")` being None or missing, expecting default to "manual"
 @pytest.mark.parametrize(
     "mock_config",
-    [pytest.lazy_fixture("mock_ai_provider_openai_direct")],
+    ["mock_ai_provider_openai_direct"],
     indirect=True,
 )
 def test_run_next_ai_provider_name_missing(
@@ -666,6 +693,7 @@ def test_run_next_ai_provider_name_missing(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
 
     config_provider_name_missing = mock_config.copy()
     # Ensure ai_provider dict exists but 'name' is missing
@@ -690,7 +718,7 @@ def test_run_next_ai_provider_name_missing(
 # Test for `ai_provider_config.get("direct_api_calls")` being missing, expecting default to False
 @pytest.mark.parametrize(
     "mock_config",
-    [pytest.lazy_fixture("mock_ai_provider_openai_direct")],
+    ["mock_ai_provider_openai_direct"],
     indirect=True,
 )
 def test_run_next_ai_provider_direct_api_calls_missing(
@@ -702,6 +730,7 @@ def test_run_next_ai_provider_direct_api_calls_missing(
 ):
     root_path = setup_working_directory
     auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
 
     config_direct_calls_missing = mock_config.copy()
     provider_details = config_direct_calls_missing["ai_provider"].copy()  # type: ignore
