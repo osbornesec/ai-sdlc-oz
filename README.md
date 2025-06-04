@@ -176,6 +176,84 @@ pip install ai-sdlc
 aisdlc --help
 ```
 
+### Optional Dependencies for Direct AI Provider Integration
+
+To use the direct API integration features (e.g., calling OpenAI directly), you need to install additional dependencies. You can install them using:
+
+```bash
+# To install with LLM provider libraries (e.g., OpenAI)
+uv pip install ai-sdlc[llm]
+# or
+pip install ai-sdlc[llm]
+
+# To install all optional dependencies including development tools
+uv pip install ai-sdlc[all]
+# or
+pip install ai-sdlc[all]
+```
+Currently, the `llm` group includes libraries such as `openai` and `anthropic`. Support for other providers will be added in the future.
+
+---
+
+## ⚙️ AI Provider Configuration
+
+AI-SDLC can be configured to directly interact with AI provider APIs (e.g., OpenAI) for certain steps, or it can operate in a manual mode where it generates prompts for you to use with your preferred AI tool. This is controlled via the `[ai_provider]` table in your `.aisdlc` configuration file (typically located in your project root).
+
+If this section is not present, AI-SDLC will default to manual prompt generation.
+
+Here's an explanation of the fields within the `[ai_provider]` table:
+
+*   `name` (string): The name of the AI provider.
+    *   Examples: `"openai"`, `"anthropic"`, `"manual"`.
+    *   Default: `"manual"` if the section is present but `name` is omitted, or if the entire section is missing.
+*   `model` (string): The specific model to use with the provider.
+    *   Examples: For OpenAI: `"gpt-4o"`, `"gpt-3.5-turbo"`. For Anthropic: `"claude-3-opus-20240229"`, `"claude-3-sonnet-20240229"`, `"claude-3-haiku-20240307"`.
+    *   This field is required if `name` is not `"manual"` and `direct_api_calls` is `true`.
+*   `api_key_env_var` (string): The name of the environment variable that AI-SDLC should look for to find the API key.
+    *   Examples: `"OPENAI_API_KEY"`, `"ANTHROPIC_API_KEY"`.
+    *   **Important**: Store the actual API key in an environment variable, not directly in the configuration file. This value tells AI-SDLC *which environment variable to read*.
+    *   This field is required if `name` is not `"manual"` and `direct_api_calls` is `true`.
+*   `direct_api_calls` (boolean): Enables or disables direct API calls to the configured provider.
+    *   Values: `true` or `false`.
+    *   Default: `false` if omitted. If set to `true`, ensure `name`, `model`, and `api_key_env_var` are correctly configured for a supported provider.
+*   `timeout_seconds` (integer, optional): The timeout in seconds for API calls.
+    *   Default: `60`.
+
+**Example `[ai_provider]` section in `.aisdlc`:**
+
+```toml
+# .aisdlc
+# ... other configurations ...
+
+[ai_provider]
+name = "openai"
+model = "gpt-4o" # or "gpt-3.5-turbo", etc.
+api_key_env_var = "OPENAI_API_KEY" # AI-SDLC will read the key from this env var
+direct_api_calls = true
+timeout_seconds = 120 # Optional, defaults to 60
+
+# Example for Anthropic Claude:
+# [ai_provider]
+# name = "anthropic"
+# model = "claude-3-opus-20240229"
+# api_key_env_var = "ANTHROPIC_API_KEY"
+# direct_api_calls = true
+```
+
+**Setting up Environment Variables for API Keys:**
+
+You need to set the environment variable specified in `api_key_env_var` with your actual API key. For example:
+
+For OpenAI:
+```bash
+export OPENAI_API_KEY="your_actual_openai_api_key_here"
+```
+For Anthropic:
+```bash
+export ANTHROPIC_API_KEY="your_actual_anthropic_api_key_here"
+```
+You might want to add these lines to your shell's startup file (e.g., `.bashrc`, `.zshrc`) to make them persistent.
+
 ---
 
 ## 📖 Basic Workflow
@@ -210,9 +288,9 @@ flowchart TD
 
 | Mode               | Steps | Description                         | Best For                                   |
 | ------------------ | ----- | ----------------------------------- | ------------------------------------------ |
-| **💬 Chat Mode**   | 1-5   | Interactive iteration with AI chat  | Refining ideas, requirements, architecture |
-| **📝 Manual Mode** | 6     | Fill out markdown manually          | Creating detailed task lists               |
-| **🤖 Agent Mode**  | 7-8   | Automated processing with AI agents | Task review, test generation               |
+| **💬 Chat/API Mode** | 1-5   | Interactive iteration with AI chat, or direct API calls if configured | Refining ideas, requirements, architecture |
+| **📝 Manual Mode** | 6     | Fill out markdown manually (or use API if configured) | Creating detailed task lists               |
+| **🤖 Agent/API Mode**| 7-8   | Automated processing via direct API calls (if configured) or AI agents using prompts | Task review, test generation               |
 
 ### 📋 Step-by-Step Process
 
@@ -236,10 +314,10 @@ flowchart TD
 
 **Working with steps:**
 
-- Each step creates a markdown file in `doing/<feature-slug>/`
-- Fill out the generated markdown before running `aisdlc next`
-- AI agents process your input and generate the next step
-- **Alternative**: Use prompt templates directly with any AI chat interface
+- Each step creates a markdown file in `doing/<feature-slug>/`.
+- You fill out the generated markdown for the current step.
+- Running `aisdlc next` then processes this input. If direct API calls are configured and successful, it generates the next step's content automatically. Otherwise, it provides a prompt for you to use with your chosen AI tool.
+- **Alternative**: Use prompt templates from the `prompts/` directory directly with any AI chat interface. This is also the fallback behavior if direct API integration is disabled or encounters an error.
 
 ---
 
@@ -277,12 +355,24 @@ flowchart TD
 
 **Running `aisdlc next`:**
 
-1. Reads the previous markdown file
-2. Merges it into the prompt for the next step
-3. For steps 7-8: Calls **AI agent** (requires compatible AI editor or API)
-4. Writes the new markdown and bumps `.aisdlc.lock`
+1.  Reads the content of the previous step's markdown file.
+2.  Merges this content into the prompt template for the current step. This forms the base prompt.
+3.  If Context7 integration is enabled, this base prompt may be further enriched with relevant library documentation.
+4.  **AI Provider Interaction:**
+    *   `aisdlc next` checks your `.aisdlc` configuration for an `[ai_provider]` section.
+    *   If `direct_api_calls` is set to `true` within this section, a supported `name` (e.g., `"openai"`, `"anthropic"`) is specified, and the `model` and `api_key_env_var` are correctly configured (ensuring the corresponding environment variable is also set):
+        *   `aisdlc next` will attempt to directly call the configured AI provider's API with the (potentially enriched) prompt.
+        *   If the API call is successful, the AI-generated content is saved directly into the markdown file for the next step (e.g., `01-design-your-feature.md`).
+    *   **Fallback to Manual Mode**: This occurs if:
+        *   `direct_api_calls` is `false`.
+        *   The provider `name` is `"manual"`.
+        *   The configured provider (e.g., a new one not yet fully supported in `ai-sdlc`) is not yet supported for direct calls.
+        *   There's a misconfiguration (e.g., missing API key, model not specified for an API provider).
+        *   An error occurs during the API call (e.g., authentication failure, timeout, provider error).
+        *   In these cases, `aisdlc next` will write the prepared prompt to a temporary file (e.g., `_prompt-01-design.md`) in your current feature's working directory. You then use this file with your preferred external AI tool.
+5.  After the next step's markdown file is created (either directly by a successful API call or manually by you using the generated prompt), running `aisdlc next` again (or if the file was already present) will detect this file, update the `.aisdlc.lock` to advance the workflow, and clean up any temporary prompt file. If the next step's file is not yet present, `aisdlc next` will remind you to create it using the generated prompt.
 
-**Using prompts manually:**
+**Using prompts manually (Default Behavior or Fallback):**
 
 1. Copy the appropriate prompt from `prompts/` directory
 2. Paste your previous step's content into the `<prev_step>` placeholder
@@ -436,11 +526,15 @@ Integration tests spin up a temp project dir and exercise the CLI flow.
 
 ### Common Issues
 
-**"AI agent command not found"**
+**"AI agent command not found"** or issues with AI processing
 
-- AI-SDLC generates prompts that work with any AI tool
-- No specific AI tool installation required
-- Use the generated prompts with your preferred AI assistant
+- AI-SDLC's primary mode is to generate prompts for you to use with your preferred AI tool (like ChatGPT, Claude, or an AI-integrated editor). This is the default "manual" workflow.
+- If you have configured **Direct API Integration** (e.g., with OpenAI) as detailed in the "AI Provider Configuration" section:
+    - Ensure your API key environment variable (e.g., `OPENAI_API_KEY`) is correctly set and exported in your shell.
+    - Verify the `model` and `name` in your `.aisdlc` file's `[ai_provider]` section are accurate for your chosen provider and that `direct_api_calls = true`.
+    - Check for any error messages from `aisdlc next` that might indicate an API or configuration problem (e.g., missing API key, invalid model).
+- If using the manual prompt mode, no specific "AI agent command" needs to be found by AI-SDLC itself. You are the one running the prompt with your chosen tool.
+- For direct API calls, you might need to install optional dependencies (e.g., `uv pip install ai-sdlc[llm]`) for the specific provider library.
 
 **"Permission denied" errors**
 
@@ -472,13 +566,14 @@ Integration tests spin up a temp project dir and exercise the CLI flow.
 
 ### Planned Features
 
-- [ ] **Pluggable AI providers** – flag `--model` to swap GPT-4o, Claude, Gemini, etc.
+- [x] **Enhanced AI provider integrations** - *v0.8.0: Support for direct API calls to OpenAI and Anthropic Claude added. Configuration allows specifying provider, model, API key (via env var), and timeout.*
+- [ ] **Pluggable AI providers** – Extend direct API calls to robustly support other models/providers like Google Gemini, etc. This may involve more sophisticated provider-specific handling beyond the current generic setup.
 - [ ] **09-release-plan** step (CI/CD & deployment playbook)
 - [ ] **Context-window management** (summaries / embeddings for large projects)
 - [ ] **Repomix integration** for giant monorepos
 - [ ] **Template customization** - custom prompt templates per project
 - [ ] **Parallel workflows** - multiple features in development simultaneously
-- [ ] **Enhanced AI provider integrations** (OpenAI API, Anthropic API, etc.)
+
 
 ### Future Considerations
 
