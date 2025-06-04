@@ -99,7 +99,7 @@ def read_lock() -> LockDict:
         return {}
     try:
         lock_data = json.loads(path.read_text())
-        return lock_data
+        return LockDict(**lock_data)
     except json.JSONDecodeError:
         print(
             "⚠️  Warning: '.aisdlc.lock' file is corrupted or not valid JSON. Treating as empty."

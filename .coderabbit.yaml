@@ -1,0 +1,214 @@
+# CodeRabbit Configuration
+# Documentation: https://docs.coderabbit.ai/guides/configure-coderabbit
+
+# Review settings
+reviews:
+  # Enable high-level summary for PRs
+  request_changes_workflow: true
+  
+  # Review tools
+  tools:
+    # Enable AST-based analysis
+    ast-grep:
+      essential_rules: true
+      rule_dirs:
+        - ".coderabbit/ast-rules"
+    
+    # Enable other static analysis tools
+    ruff:
+      enabled: true
+    
+    mypy:
+      enabled: true
+    
+    # Security scanning
+    bandit:
+      enabled: true
+    
+    # Dependency checking
+    safety:
+      enabled: true
+  
+  # Path-specific instructions
+  path_instructions:
+    - path: "**/*.py"
+      instructions: |
+        Review Python code for:
+        - PEP 8 compliance (enforced by ruff)
+        - Type hints and mypy compliance
+        - Proper error handling and logging
+        - Security best practices
+        - Test coverage for new code
+        - Docstring completeness
+        
+    - path: "tests/**/*.py"
+      instructions: |
+        Review test code for:
+        - Comprehensive test coverage
+        - Proper use of pytest fixtures
+        - Clear test names and descriptions
+        - Both positive and negative test cases
+        - Proper mocking of external dependencies
+        
+    - path: "**/*.yml"
+      instructions: |
+        Review YAML files for:
+        - Correct syntax and indentation
+        - Security best practices in CI/CD workflows
+        - Proper use of GitHub Actions features
+        - Efficiency and optimization opportunities
+        
+    - path: "ai_sdlc/services/context7_*.py"
+      instructions: |
+        Pay special attention to:
+        - API key handling and security
+        - Rate limiting and retry logic
+        - Error handling for network requests
+        - Caching implementation
+        - Async/await best practices
+
+# Code generation settings
+code_generation:
+  docstrings:
+    enabled: true
+    style: "google"  # google, numpy, or sphinx
+    path_instructions:
+      - path: "ai_sdlc/**/*.py"
+        instructions: |
+          Generate comprehensive docstrings including:
+          - Brief description
+          - Args with types and descriptions
+          - Returns with type and description
+          - Raises for exceptions
+          - Examples for complex functions
+          
+      - path: "tests/**/*.py"
+        instructions: |
+          Generate concise docstrings for test functions that explain:
+          - What is being tested
+          - Expected behavior
+          - Any special setup or conditions
+
+# Language-specific settings
+languages:
+  python:
+    # Minimum Python version
+    version: "3.11"
+    
+    # Style guide
+    style_guide: "pep8"
+    
+    # Linting rules
+    linting:
+      - "ruff"
+      - "mypy"
+    
+    # Testing framework
+    testing_framework: "pytest"
+
+# Security settings
+security:
+  # Detect secrets
+  detect_secrets: true
+  
+  # Security tools
+  tools:
+    - "bandit"
+    - "safety"
+  
+  # Sensitive file patterns
+  sensitive_patterns:
+    - "**/*secret*"
+    - "**/*token*"
+    - "**/*key*"
+    - "**/.env*"
+
+# Performance settings
+performance:
+  # Review for performance issues
+  review_performance: true
+  
+  # Specific checks
+  checks:
+    - "complexity"
+    - "memory_usage"
+    - "async_optimization"
+
+# Custom rules
+custom_rules:
+  - name: "no-print-statements"
+    description: "Disallow print statements in production code"
+    pattern: "print("
+    paths:
+      - "ai_sdlc/**/*.py"
+    exclude_paths:
+      - "ai_sdlc/cli.py"
+    severity: "warning"
+    
+  - name: "require-type-hints"
+    description: "Require type hints for all function parameters and returns"
+    pattern: "def .*\\(.*\\)(?!.*->)"
+    paths:
+      - "ai_sdlc/**/*.py"
+    severity: "warning"
+
+# Ignore patterns
+ignore:
+  # Files to ignore
+  files:
+    - "**/__pycache__/**"
+    - "**/.pytest_cache/**"
+    - "**/.mypy_cache/**"
+    - "**/.ruff_cache/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/*.egg-info/**"
+    
+  # Specific rules to ignore
+  rules:
+    - "line-too-long"  # Handled by ruff
+    
+# Auto-reply settings
+auto_reply:
+  # Enable auto-reply for common issues
+  enabled: true
+  
+  # Templates for common responses
+  templates:
+    missing_tests: |
+      This PR introduces new functionality but appears to be missing tests. 
+      Please add appropriate unit tests to maintain code coverage.
+      
+    missing_docstring: |
+      Please add docstrings to new functions and classes following the Google style guide.
+      
+    security_issue: |
+      Potential security issue detected. Please review and address before merging.
+
+# Review profile
+review_profile: "assertive"  # chill, default, or assertive
+
+# Enable learn mode to improve over time
+learning:
+  enabled: true
+  
+# Integration settings
+integrations:
+  # Enable GitHub issue linking
+  github_issues: true
+  
+  # Enable PR size warnings
+  pr_size_warnings:
+    enabled: true
+    max_lines: 500
+    
+# Finishing touches
+finishing_touches:
+  # Auto-generate docstrings for new code
+  auto_docstrings: true
+  
+  # Check for TODO/FIXME comments
+  check_todos: true
+  
+  # Verify changelog updates
+  check_changelog: true

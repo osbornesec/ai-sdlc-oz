@@ -15,7 +15,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 # Pre-compiled regex for parsing documentation code blocks
-CODE_BLOCK_PATTERN = re.compile(r'```(\w*)\n(.*?)```', re.DOTALL)
+CODE_BLOCK_PATTERN = re.compile(r"```(\w*)\n(.*?)```", re.DOTALL)
 
 # Retry configuration
 MAX_RETRIES = 3
@@ -25,23 +25,28 @@ RETRY_STATUS_CODES = {502, 503, 504, 429}
 
 class Context7ClientError(Exception):
     """Base exception for Context7 client errors."""
+
     pass
 
 
 class Context7TimeoutError(Context7ClientError):
     """Timeout error for Context7 operations."""
+
     pass
 
 
 class Context7AuthError(Context7ClientError):
     """Authentication error for Context7 operations."""
+
     pass
 
 
 class Context7Client:
     """Context7 client that properly handles SSE connections with async context manager support."""
 
-    def __init__(self, base_url: str = "https://mcp.context7.com", api_key: str | None = None):
+    def __init__(
+        self, base_url: str = "https://mcp.context7.com", api_key: str | None = None
+    ):
         """Initialize Context7 client.
 
         Args:
@@ -57,9 +62,7 @@ class Context7Client:
 
         # Configure connection pooling
         self.limits = httpx.Limits(
-            max_keepalive_connections=5,
-            max_connections=10,
-            keepalive_expiry=30.0
+            max_keepalive_connections=5, max_connections=10, keepalive_expiry=30.0
         )
 
         # Shared async client and event loop management
@@ -84,14 +87,16 @@ class Context7Client:
         if not api_key or len(api_key) < 6:
             return False
         # Basic check for alphanumeric with some special chars
-        return all(c.isalnum() or c in '-_.' for c in api_key)
+        return all(c.isalnum() or c in "-_." for c in api_key)
 
     async def __aenter__(self) -> Context7Client:
         """Async context manager entry."""
         await self._ensure_client()
         return self
 
-    async def __aexit__(self, exc_type: type | None, exc_val: Exception | None, exc_tb: Any | None) -> None:
+    async def __aexit__(
+        self, exc_type: type | None, exc_val: Exception | None, exc_tb: Any | None
+    ) -> None:
         """Async context manager exit with proper cleanup."""
         await self.aclose()
 
@@ -101,10 +106,7 @@ class Context7Client:
             raise Context7ClientError("Client is closed")
 
         if self._client is None or self._client.is_closed:
-            self._client = httpx.AsyncClient(
-                timeout=self.timeout,
-                limits=self.limits
-            )
+            self._client = httpx.AsyncClient(timeout=self.timeout, limits=self.limits)
         return self._client
 
     def _get_client(self) -> httpx.AsyncClient:
@@ -160,18 +162,26 @@ class Context7Client:
         """Alias for aclose for backwards compatibility."""
         await self.aclose()
 
-    async def _execute_tool_with_retry(self, tool_name: str, parameters: dict[str, Any]) -> dict[str, Any] | None:
+    async def _execute_tool_with_retry(
+        self, tool_name: str, parameters: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Execute a tool with retry logic."""
         last_exception = None
 
         for attempt in range(MAX_RETRIES):
             try:
                 return await self._execute_tool(tool_name, parameters)
-            except (httpx.ConnectError, httpx.TimeoutException, Context7TimeoutError) as e:
+            except (
+                httpx.ConnectError,
+                httpx.TimeoutException,
+                Context7TimeoutError,
+            ) as e:
                 last_exception = e
                 if attempt < MAX_RETRIES - 1:
-                    wait_time = RETRY_BACKOFF_FACTOR ** attempt
-                    logger.debug(f"Attempt {attempt + 1} failed, retrying in {wait_time}s: {e}")
+                    wait_time = RETRY_BACKOFF_FACTOR**attempt
+                    logger.debug(
+                        f"Attempt {attempt + 1} failed, retrying in {wait_time}s: {e}"
+                    )
                     await asyncio.sleep(wait_time)
                 else:
                     logger.error(f"All {MAX_RETRIES} attempts failed for {tool_name}")
@@ -187,7 +197,9 @@ class Context7Client:
             return None
         return None
 
-    async def _execute_tool(self, tool_name: str, parameters: dict[str, Any]) -> dict[str, Any] | None:
+    async def _execute_tool(
+        self, tool_name: str, parameters: dict[str, Any]
+    ) -> dict[str, Any] | None:
         """Execute a Context7 tool via SSE API with proper session handling.
 
         Args:
@@ -241,6 +253,7 @@ class Context7Client:
 
         try:
             # Wait for endpoint
+            session_id = ""
             while True:
                 try:
                     item = await asyncio.wait_for(result_queue.get(), timeout=5.0)
@@ -259,25 +272,20 @@ class Context7Client:
             request_data = {
                 "jsonrpc": "2.0",
                 "method": "tools/call",
-                "params": {
-                    "name": tool_name,
-                    "arguments": parameters
-                },
-                "id": 1
+                "params": {"name": tool_name, "arguments": parameters},
+                "id": 1,
             }
 
-            headers = {
+            headers: dict[str, str] = {
                 "Content-Type": "application/json",
-                "MCP-Session-Id": session_id
+                "MCP-Session-Id": session_id,
             }
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
 
             try:
                 post_response = await client.post(
-                    messages_url,
-                    json=request_data,
-                    headers=headers
+                    messages_url, json=request_data, headers=headers
                 )
 
                 if post_response.status_code == 401:
@@ -305,7 +313,7 @@ class Context7Client:
                             if data_str and data_str != "[DONE]":
                                 try:
                                     data = json.loads(data_str)
-                                    return data
+                                    return dict(data)
                                 except json.JSONDecodeError as e:
                                     logger.debug(f"Failed to parse JSON response: {e}")
                         elif "event: done" in str(line):
@@ -342,17 +350,23 @@ class Context7Client:
                 if line.startswith("Title:"):
                     result["name"] = line.replace("Title:", "").strip()
                 elif line.startswith("Context7-compatible library ID:"):
-                    result["libraryId"] = line.replace("Context7-compatible library ID:", "").strip()
+                    result["libraryId"] = line.replace(
+                        "Context7-compatible library ID:", ""
+                    ).strip()
                 elif line.startswith("Description:"):
                     result["description"] = line.replace("Description:", "").strip()
                 elif line.startswith("Code Snippets:"):
                     try:
-                        result["codeSnippetCount"] = int(line.replace("Code Snippets:", "").strip())
+                        result["codeSnippetCount"] = int(
+                            line.replace("Code Snippets:", "").strip()
+                        )
                     except ValueError:
                         logger.debug(f"Invalid code snippet count: {line}")
                 elif line.startswith("Trust Score:"):
                     try:
-                        result["trustScore"] = float(line.replace("Trust Score:", "").strip())
+                        result["trustScore"] = float(
+                            line.replace("Trust Score:", "").strip()
+                        )
                     except ValueError:
                         logger.debug(f"Invalid trust score: {line}")
 
@@ -398,7 +412,9 @@ class Context7Client:
         try:
             loop = self._ensure_loop()
             response_data = loop.run_until_complete(
-                self._execute_tool_with_retry("resolve-library-id", {"libraryName": library_name})
+                self._execute_tool_with_retry(
+                    "resolve-library-id", {"libraryName": library_name}
+                )
             )
 
             if response_data and "result" in response_data:
@@ -423,24 +439,32 @@ class Context7Client:
                                         score = 0
 
                                         # Exact name match
-                                        if lib.get("name", "").lower() == library_name.lower():
+                                        if (
+                                            lib.get("name", "").lower()
+                                            == library_name.lower()
+                                        ):
                                             score += 100
                                         # Partial match
-                                        elif library_name.lower() in lib.get("name", "").lower():
+                                        elif (
+                                            library_name.lower()
+                                            in lib.get("name", "").lower()
+                                        ):
                                             score += 50
 
                                         # Add trust score
                                         score += lib.get("trustScore", 0) * 10
 
                                         # Add snippet count bonus
-                                        score += min(lib.get("codeSnippetCount", 0) / 100, 10.0)
+                                        score += min(
+                                            lib.get("codeSnippetCount", 0) / 100, 10.0
+                                        )
 
                                         if score > best_score:
                                             best_score = score
                                             best_match = lib
 
                                     if best_match:
-                                        return best_match["libraryId"]
+                                        return str(best_match["libraryId"])
 
             return None
 
@@ -448,7 +472,9 @@ class Context7Client:
             logger.error(f"Context7 error resolving library ID for: {library_name}")
             return None
         except Exception as e:
-            logger.error(f"Error resolving library ID for {library_name}: {e}", exc_info=True)
+            logger.error(
+                f"Error resolving library ID for {library_name}: {e}", exc_info=True
+            )
             return None
         finally:
             if self._owns_loop and self._loop:
@@ -466,10 +492,7 @@ class Context7Client:
                 self._loop = None
 
     def get_library_docs(
-        self,
-        library_id: str,
-        tokens: int = 5000,
-        topic: str | None = None
+        self, library_id: str, tokens: int = 5000, topic: str | None = None
     ) -> str:
         """Get documentation for a library.
 
@@ -492,7 +515,7 @@ class Context7Client:
 
             args: dict[str, Any] = {
                 "context7CompatibleLibraryID": library_id,
-                "tokens": tokens
+                "tokens": tokens,
             }
             if topic:
                 args["topic"] = topic
@@ -517,12 +540,16 @@ class Context7Client:
                             text = parts[i].strip()
                             if text:
                                 # Look for titles
-                                lines = text.split('\n')
+                                lines = text.split("\n")
                                 for line in lines:
-                                    if line.startswith('TITLE:'):
-                                        formatted_docs.append(f"**{line.replace('TITLE:', '').strip()}**")
-                                    elif line.startswith('DESCRIPTION:'):
-                                        formatted_docs.append(line.replace('DESCRIPTION:', '').strip())
+                                    if line.startswith("TITLE:"):
+                                        formatted_docs.append(
+                                            f"**{line.replace('TITLE:', '').strip()}**"
+                                        )
+                                    elif line.startswith("DESCRIPTION:"):
+                                        formatted_docs.append(
+                                            line.replace("DESCRIPTION:", "").strip()
+                                        )
                                     elif line.strip():
                                         formatted_docs.append(line)
 
@@ -540,7 +567,9 @@ class Context7Client:
             logger.error(f"Context7 error fetching docs for library: {library_id}")
             return ""
         except Exception as e:
-            logger.error(f"Error fetching docs for library {library_id}: {e}", exc_info=True)
+            logger.error(
+                f"Error fetching docs for library {library_id}: {e}", exc_info=True
+            )
             return ""
         finally:
             if self._owns_loop and self._loop:
