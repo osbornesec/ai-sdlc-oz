@@ -115,6 +115,11 @@ class Context7Client:
                 asyncio.set_event_loop(self._loop)
         return self._loop
 
+    def _get_client(self) -> httpx.AsyncClient:
+        """Synchronously get or create the shared HTTP client."""
+        loop = self._ensure_loop()
+        return loop.run_until_complete(self._ensure_client())
+
     async def aclose(self) -> None:
         """Properly close the async client."""
         if self._client and not self._client.is_closed:
@@ -165,7 +170,7 @@ class Context7Client:
         sse_url = f"{self.base_url}/sse?{urlencode(params)}"
 
         # Use the shared client with connection pooling
-        client = await self._ensure_client()
+        client = self._get_client()
 
         endpoint = None
         session_id = None

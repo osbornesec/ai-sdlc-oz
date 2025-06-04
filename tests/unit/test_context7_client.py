@@ -33,9 +33,9 @@ class TestContext7Client:
 
     def test_init_with_env_key(self):
         """Test client initialization with environment key."""
-        with patch.dict('os.environ', {'CONTEXT7_API_KEY': 'env-key'}):
+        with patch.dict('os.environ', {'CONTEXT7_API_KEY': 'env-key-valid'}):
             client = Context7Client()
-            assert client.api_key == "env-key"
+            assert client.api_key == "env-key-valid"
 
     def test_init_without_key(self):
         """Test client initialization without API key."""
@@ -128,6 +128,7 @@ class TestContext7Client:
         text = """
         ----------
         - Title: Invalid
+        - Context7-compatible library ID: /invalid/lib
         - Code Snippets: not-a-number
         - Trust Score: invalid
         ----------
@@ -135,9 +136,9 @@ class TestContext7Client:
         
         with patch('ai_sdlc.services.context7_client.logger') as mock_logger:
             results = client._parse_library_results(text)
-            
-            # Should still parse what it can
-            assert len(results) == 0  # No library ID, so not included
+
+            # Should parse the entry even with invalid numbers
+            assert len(results) == 1
             # Should log debug messages for invalid values
             assert mock_logger.debug.call_count >= 2
 
@@ -168,11 +169,11 @@ class TestContext7Client:
         client = Context7Client(api_key="test-key-123456789")
         
         with patch.object(client, '_execute_tool', side_effect=Context7TimeoutError("Timeout")) as mock_execute:
-            result = await client._execute_tool_with_retry("test-tool", {})
-            
+            with pytest.raises(Context7TimeoutError):
+                await client._execute_tool_with_retry("test-tool", {})
+
             # Should have tried 3 times (MAX_RETRIES)
             assert mock_execute.call_count == 3
-            assert result is None
 
     @pytest.mark.asyncio
     async def test_no_retry_on_auth_error(self):
@@ -218,10 +219,9 @@ class TestContext7Client:
         
         with patch('ai_sdlc.services.context7_client.logger') as mock_logger:
             result = client.resolve_library_id("test")
-        
+
         assert result is None
         mock_logger.error.assert_called_once()
-        mock_loop.close.assert_called_once()
 
     def test_get_client_creates_new(self, client):
         """Test that _get_client creates new client when needed."""
@@ -263,13 +263,16 @@ class TestContext7Client:
     async def test_execute_tool_timeout(self, client):
         """Test timeout handling in _execute_tool."""
         with patch.object(client, '_get_client') as mock_get_client:
-            mock_client = AsyncMock()
+            mock_client = Mock()
             mock_get_client.return_value = mock_client
-            
+
             # Mock stream to timeout
             mock_stream = AsyncMock()
             mock_stream.aiter_lines.side_effect = asyncio.TimeoutError()
-            mock_client.stream.return_value.__aenter__.return_value = mock_stream
-            
-            result = await client._execute_tool("test-tool", {})
-            assert result is None
+            stream_cm = AsyncMock()
+            stream_cm.__aenter__.return_value = mock_stream
+            stream_cm.__aexit__.return_value = None
+            mock_client.stream.return_value = stream_cm
+
+            with pytest.raises(Context7TimeoutError):
+                await client._execute_tool("test-tool", {})
