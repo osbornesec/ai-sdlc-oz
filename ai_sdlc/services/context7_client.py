@@ -249,6 +249,7 @@ class Context7Client:
 
         try:
             # Wait for endpoint
+            session_id = ""
             while True:
                 try:
                     item = await asyncio.wait_for(result_queue.get(), timeout=5.0)
@@ -271,7 +272,7 @@ class Context7Client:
                 "id": 1,
             }
 
-            headers = {"Content-Type": "application/json", "MCP-Session-Id": session_id}
+            headers: dict[str, str] = {"Content-Type": "application/json", "MCP-Session-Id": session_id}
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
 
@@ -305,7 +306,7 @@ class Context7Client:
                             if data_str and data_str != "[DONE]":
                                 try:
                                     data = json.loads(data_str)
-                                    return data
+                                    return dict(data)
                                 except json.JSONDecodeError as e:
                                     logger.debug(f"Failed to parse JSON response: {e}")
                         elif "event: done" in str(line):
@@ -456,7 +457,7 @@ class Context7Client:
                                             best_match = lib
 
                                     if best_match:
-                                        return best_match["libraryId"]
+                                        return str(best_match["libraryId"])
 
             return None
 

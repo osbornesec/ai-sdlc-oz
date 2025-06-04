@@ -26,6 +26,7 @@ class Context7Service:
         self.cache_dir.mkdir(exist_ok=True)
         self.cache_index_file = self.cache_dir / "index.json"
         self.cache_lock_file = self.cache_dir / ".lock"
+        self._lock_handle: portalocker.Lock | None = None
         self.cache_index = self._load_cache_index()
         self.client = Context7Client()
 
@@ -46,7 +47,7 @@ class Context7Service:
     def _release_lock(self) -> None:
         """Release the file lock."""
         try:
-            if getattr(self, "_lock_handle", None) is not None:
+            if self._lock_handle is not None:
                 self._lock_handle.release()
                 self._lock_handle = None
         except Exception as e:
@@ -59,7 +60,7 @@ class Context7Service:
                 self._acquire_lock()
                 try:
                     data = json.loads(self.cache_index_file.read_text())
-                    return data
+                    return dict(data)
                 except json.JSONDecodeError:
                     logger.warning("Cache index corrupted, resetting")
                     return {}

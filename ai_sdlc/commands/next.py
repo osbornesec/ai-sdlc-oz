@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from ai_sdlc.services.context7_service import Context7Service
+from ai_sdlc.types import ConfigDict, LockDict
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
 PLACEHOLDER = "<prev_step></prev_step>"
@@ -17,7 +18,7 @@ def _validate_required_files(
     prompt_file: Path,
     prev_step: str,
     next_step: str,
-    conf: dict[str, Any],
+    conf: ConfigDict,
 ) -> None:
     """Validate that required files exist."""
     if not prev_file.exists():
@@ -51,7 +52,7 @@ def _read_and_merge_content(prev_file: Path, prompt_file: Path) -> str:
 
 
 def _apply_context7_enrichment(
-    conf: dict[str, Any],
+    conf: ConfigDict,
     merged_prompt: str,
     workdir: Path,
     steps: list[str],
@@ -60,9 +61,8 @@ def _apply_context7_enrichment(
     next_step: str,
 ) -> str:
     """Apply Context7 enrichment if enabled."""
-    context7_enabled = conf.get("context7", {}).get(
-        "enabled", True
-    )  # Default to enabled
+    context7_config = conf.get("context7", {})
+    context7_enabled = context7_config.get("enabled", True) if context7_config else True
     if not context7_enabled:
         return merged_prompt
 
@@ -118,7 +118,7 @@ def _write_prompt_and_show_instructions(
 
 
 def _handle_next_step_file(
-    next_file: Path, next_step: str, lock: dict[str, Any], prompt_output_file: Path
+    next_file: Path, next_step: str, lock: LockDict, prompt_output_file: Path
 ) -> None:
     """Check if next step file exists and handle accordingly."""
     if next_file.exists():
@@ -142,7 +142,7 @@ def _handle_next_step_file(
 
 
 def _validate_workflow_state(
-    conf: dict[str, Any], lock: dict[str, Any]
+    conf: ConfigDict, lock: LockDict
 ) -> tuple[str, int, list[str]]:
     """Validate workflow state and return slug, current index, and steps."""
     if not lock:
@@ -161,7 +161,7 @@ def _validate_workflow_state(
 
 
 def _prepare_file_paths(
-    conf: dict[str, Any], slug: str, prev_step: str, next_step: str
+    conf: ConfigDict, slug: str, prev_step: str, next_step: str
 ) -> tuple[Path, Path, Path, Path, Path]:
     """Prepare and return all required file paths."""
     workdir = ROOT / conf["active_dir"] / slug
