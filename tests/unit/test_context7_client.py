@@ -21,7 +21,7 @@ class TestContext7Client:
     @pytest.fixture
     def client(self):
         """Create a Context7Client instance."""
-        with patch.dict('os.environ', {'CONTEXT7_API_KEY': 'test-key'}):
+        with patch.dict("os.environ", {"CONTEXT7_API_KEY": "test-key"}):
             return Context7Client()
 
     def test_init_with_api_key(self):
@@ -32,14 +32,14 @@ class TestContext7Client:
 
     def test_init_with_env_key(self):
         """Test client initialization with environment key."""
-        with patch.dict('os.environ', {'CONTEXT7_API_KEY': 'env-key'}):
+        with patch.dict("os.environ", {"CONTEXT7_API_KEY": "env-key"}):
             client = Context7Client()
             assert client.api_key == "env-key"
 
     def test_init_without_key(self):
         """Test client initialization without API key."""
-        with patch.dict('os.environ', {}, clear=True):
-            with patch('ai_sdlc.services.context7_client.logger') as mock_logger:
+        with patch.dict("os.environ", {}, clear=True):
+            with patch("ai_sdlc.services.context7_client.logger") as mock_logger:
                 client = Context7Client()
                 assert client.api_key is None
                 mock_logger.warning.assert_called_once()
@@ -62,7 +62,7 @@ class TestContext7Client:
 
     def test_init_with_invalid_api_key(self):
         """Test client initialization with invalid API key."""
-        with patch('ai_sdlc.services.context7_client.logger') as mock_logger:
+        with patch("ai_sdlc.services.context7_client.logger") as mock_logger:
             client = Context7Client(api_key="bad")
             assert client.api_key is None  # Should be set to None due to validation
             mock_logger.warning.assert_called()
@@ -144,7 +144,7 @@ class TestContext7Client:
         ----------
         """
 
-        with patch('ai_sdlc.services.context7_client.logger') as mock_logger:
+        with patch("ai_sdlc.services.context7_client.logger") as mock_logger:
             results = client._parse_library_results(text)
 
             # Should still parse what it can
@@ -159,7 +159,7 @@ class TestContext7Client:
                 "content": [
                     {"text": "First part of docs"},
                     {"text": "Second part of docs"},
-                    {"other": "ignored"}
+                    {"other": "ignored"},
                 ]
             }
         }
@@ -178,7 +178,9 @@ class TestContext7Client:
         """Test retry logic handles timeouts correctly."""
         client = Context7Client(api_key="test-key-123456789")
 
-        with patch.object(client, '_execute_tool', side_effect=Context7TimeoutError("Timeout")) as mock_execute:
+        with patch.object(
+            client, "_execute_tool", side_effect=Context7TimeoutError("Timeout")
+        ) as mock_execute:
             result = await client._execute_tool_with_retry("test-tool", {})
 
             # Should have tried 3 times (MAX_RETRIES)
@@ -190,7 +192,9 @@ class TestContext7Client:
         """Test that auth errors are not retried."""
         client = Context7Client(api_key="test-key-123456789")
 
-        with patch.object(client, '_execute_tool', side_effect=Context7AuthError("Auth failed")) as mock_execute:
+        with patch.object(
+            client, "_execute_tool", side_effect=Context7AuthError("Auth failed")
+        ) as mock_execute:
             result = await client._execute_tool_with_retry("test-tool", {})
 
             # Should only try once for auth errors
@@ -201,30 +205,34 @@ class TestContext7Client:
         """Test resolving library ID with retry logic."""
         mock_response = {
             "result": {
-                "content": [{
-                    "text": """
+                "content": [
+                    {
+                        "text": """
                     ----------
                     - Title: React
                     - Context7-compatible library ID: /facebook/react
                     - Trust Score: 9.5
                     ----------
                     """
-                }]
+                    }
+                ]
             }
         }
 
         # Mock the retry method to return our response
         with patch.object(
             client,
-            '_execute_tool_with_retry',
+            "_execute_tool_with_retry",
             new=AsyncMock(return_value=mock_response),
         ) as mock_retry:
             result = client.resolve_library_id("react")
 
         assert result == "/facebook/react"
-        mock_retry.assert_called_once_with("resolve-library-id", {"libraryName": "react"})
+        mock_retry.assert_called_once_with(
+            "resolve-library-id", {"libraryName": "react"}
+        )
 
-    @patch('asyncio.new_event_loop')
+    @patch("asyncio.new_event_loop")
     def test_resolve_library_id_error_handling(self, mock_new_loop, client):
         """Test error handling in resolve_library_id."""
         mock_loop = Mock()
@@ -236,10 +244,13 @@ class TestContext7Client:
 
         mock_loop.run_until_complete.side_effect = run_until_complete_side_effect
 
-        with patch('ai_sdlc.services.context7_client.logger') as mock_logger, patch.object(
-            client,
-            '_execute_tool_with_retry',
-            new=AsyncMock(return_value=None),
+        with (
+            patch("ai_sdlc.services.context7_client.logger") as mock_logger,
+            patch.object(
+                client,
+                "_execute_tool_with_retry",
+                new=AsyncMock(return_value=None),
+            ),
         ):
             result = client.resolve_library_id("test")
 
@@ -286,7 +297,7 @@ class TestContext7Client:
     @pytest.mark.asyncio
     async def test_execute_tool_timeout(self, client):
         """Test timeout handling in _execute_tool."""
-        with patch.object(client, '_get_client') as mock_get_client:
+        with patch.object(client, "_get_client") as mock_get_client:
             mock_client = Mock()
             mock_get_client.return_value = mock_client
 

@@ -16,6 +16,7 @@ from .context7_client import Context7Client
 
 logger = logging.getLogger(__name__)
 
+
 class Context7Service:
     """Service for integrating Context7 documentation into AI-SDLC workflow."""
 
@@ -95,7 +96,7 @@ class Context7Service:
         # Check for direct mentions of known libraries
         for variant, canonical in LIBRARY_MAPPINGS.items():
             # Use word boundaries to avoid partial matches
-            if re.search(rf'\b{re.escape(variant)}\b', text_lower):
+            if re.search(rf"\b{re.escape(variant)}\b", text_lower):
                 libraries.add(canonical)
 
         # Look for common patterns using pre-compiled regexes
@@ -121,7 +122,14 @@ class Context7Service:
     def get_step_specific_libraries(self, step: str) -> list[str]:
         """Get recommended libraries for a specific step."""
         step_libraries: dict[str, list[str]] = {
-            "3-system-template": ["react", "vue", "angular", "fastapi", "django", "express"],
+            "3-system-template": [
+                "react",
+                "vue",
+                "angular",
+                "fastapi",
+                "django",
+                "express",
+            ],
             "4-systems-patterns": ["redux", "mobx", "sqlalchemy", "prisma"],
             "5-tasks": [],  # Dynamic based on previous steps
             "6-tasks-plus": [],  # Dynamic based on previous steps
@@ -147,8 +155,13 @@ class Context7Service:
 
         return "\n".join(sections)
 
-    def enrich_prompt(self, prompt: str, step: str, previous_content: str,
-                      force_libraries: list[str] | None = None) -> str:
+    def enrich_prompt(
+        self,
+        prompt: str,
+        step: str,
+        previous_content: str,
+        force_libraries: list[str] | None = None,
+    ) -> str:
         """Enrich a prompt with relevant Context7 documentation."""
         # Extract libraries from previous content or use forced list
         if force_libraries:
@@ -174,7 +187,9 @@ class Context7Service:
             # 3. Cache the results
             cache_key = f"{library}_{step}"
 
-            if cache_key in self.cache_index and self._is_cache_valid(self.cache_index[cache_key]):
+            if cache_key in self.cache_index and self._is_cache_valid(
+                self.cache_index[cache_key]
+            ):
                 # Load from cache with locking
                 cache_file = self.cache_dir / f"{cache_key}.md"
                 if cache_file.exists():
@@ -185,7 +200,9 @@ class Context7Service:
                         finally:
                             self._release_lock()
                     except TimeoutError:
-                        logger.warning(f"Could not acquire lock for reading cache file: {cache_key}")
+                        logger.warning(
+                            f"Could not acquire lock for reading cache file: {cache_key}"
+                        )
                         continue
             else:
                 # Fetch from Context7 API
@@ -193,7 +210,9 @@ class Context7Service:
                 if library_id:
                     # Get topic based on step
                     topic = self._get_topic_for_step(step)
-                    docs = self.client.get_library_docs(library_id, tokens=3000, topic=topic)
+                    docs = self.client.get_library_docs(
+                        library_id, tokens=3000, topic=topic
+                    )
 
                     if docs:
                         library_docs[library] = docs
@@ -207,20 +226,30 @@ class Context7Service:
 
                                 cache_entry: CacheEntry = {
                                     "timestamp": datetime.now().isoformat(),
-                                    "library_id": library_id
+                                    "library_id": library_id,
                                 }
                                 self.cache_index[cache_key] = cache_entry
                                 self._save_cache_index()
-                                logger.debug(f"Cached documentation for {library} (ID: {library_id})")
+                                logger.debug(
+                                    f"Cached documentation for {library} (ID: {library_id})"
+                                )
                             finally:
                                 self._release_lock()
                         except TimeoutError:
-                            logger.error(f"Could not acquire lock for caching docs: {cache_key}")
+                            logger.error(
+                                f"Could not acquire lock for caching docs: {cache_key}"
+                            )
                     else:
-                        library_docs[library] = f"<!-- Documentation not available for {library} -->"
-                        logger.warning(f"No documentation found for {library} (ID: {library_id})")
+                        library_docs[library] = (
+                            f"<!-- Documentation not available for {library} -->"
+                        )
+                        logger.warning(
+                            f"No documentation found for {library} (ID: {library_id})"
+                        )
                 else:
-                    library_docs[library] = f"<!-- Could not resolve library: {library} -->"
+                    library_docs[library] = (
+                        f"<!-- Could not resolve library: {library} -->"
+                    )
                     logger.warning(f"Could not resolve library: {library}")
 
         # Find where to insert the documentation
@@ -233,25 +262,27 @@ class Context7Service:
             prompt = prompt.replace("</context7_docs>", "")
         else:
             # Insert after initial description/title but before main content
-            lines = prompt.split('\n')
+            lines = prompt.split("\n")
             insert_index = 0
 
             # Find first major heading after initial content
             for i, line in enumerate(lines):
-                if line.strip().startswith('##') and i > 2:
+                if line.strip().startswith("##") and i > 2:
                     insert_index = i
                     break
 
             if insert_index > 0:
                 lines.insert(insert_index, context7_section)
-                prompt = '\n'.join(lines)
+                prompt = "\n".join(lines)
             else:
                 # Append at the end if no suitable location found
                 prompt += f"\n\n{context7_section}"
 
         return prompt
 
-    def create_context_command_output(self, step: str, detected_libraries: list[str]) -> str:
+    def create_context_command_output(
+        self, step: str, detected_libraries: list[str]
+    ) -> str:
         """Create formatted output for the context command."""
         output = []
         output.append(f"📚 Context7 Library Detection for Step: {step}")
@@ -262,8 +293,12 @@ class Context7Service:
             for lib in detected_libraries:
                 output.append(f"  • {lib}")
 
-            output.append("\n💡 These libraries will be included in the next prompt generation.")
-            output.append("   Documentation will be fetched via Context7 MCP to provide:")
+            output.append(
+                "\n💡 These libraries will be included in the next prompt generation."
+            )
+            output.append(
+                "   Documentation will be fetched via Context7 MCP to provide:"
+            )
             output.append("   - Current API references")
             output.append("   - Best practices and patterns")
             output.append("   - Version-specific information")

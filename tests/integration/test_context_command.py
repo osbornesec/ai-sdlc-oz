@@ -25,30 +25,29 @@ class TestContextCommand:
                 "active_dir": "doing",
                 "done_dir": "done",
                 "prompt_dir": "prompts",
-                "steps": ["00-idea", "01-prd", "02-prd-plus"]
+                "steps": ["00-idea", "01-prd", "02-prd-plus"],
             }
             (project_dir / ".aisdlc").write_text(
                 f"""
-                version = "{config['version']}"
-                active_dir = "{config['active_dir']}"
-                done_dir = "{config['done_dir']}"
-                prompt_dir = "{config['prompt_dir']}"
-                steps = {json.dumps(config['steps'])}
+                version = "{config["version"]}"
+                active_dir = "{config["active_dir"]}"
+                done_dir = "{config["done_dir"]}"
+                prompt_dir = "{config["prompt_dir"]}"
+                steps = {json.dumps(config["steps"])}
                 """
             )
 
             # Create lock file
-            lock = {
-                "slug": "test-project",
-                "current": "00-idea"
-            }
+            lock = {"slug": "test-project", "current": "00-idea"}
             (project_dir / ".aisdlc.lock").write_text(json.dumps(lock))
 
             # Create project directories
             (project_dir / "doing" / "test-project").mkdir(parents=True)
 
             # Create idea file with library mentions
-            idea_file = project_dir / "doing" / "test-project" / "00-idea-test-project.md"
+            idea_file = (
+                project_dir / "doing" / "test-project" / "00-idea-test-project.md"
+            )
             idea_file.write_text("""
 # Test Project
 
@@ -62,9 +61,11 @@ Database will be PostgreSQL.
         """Test context command with no arguments."""
         monkeypatch.chdir(temp_project)
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
-             patch('ai_sdlc.utils.ROOT', temp_project):
-            with patch('builtins.print') as mock_print:
+        with (
+            patch("ai_sdlc.commands.context.ROOT", temp_project),
+            patch("ai_sdlc.utils.ROOT", temp_project),
+        ):
+            with patch("builtins.print") as mock_print:
                 run_context([])
 
         # Should detect libraries and show output
@@ -78,9 +79,11 @@ Database will be PostgreSQL.
         """Test context command with --libraries argument."""
         monkeypatch.chdir(temp_project)
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
-             patch('ai_sdlc.utils.ROOT', temp_project):
-            with patch('builtins.print') as mock_print:
+        with (
+            patch("ai_sdlc.commands.context.ROOT", temp_project),
+            patch("ai_sdlc.utils.ROOT", temp_project),
+        ):
+            with patch("builtins.print") as mock_print:
                 run_context(["--libraries", "django,redis"])
 
         output = " ".join(str(call[0][0]) for call in mock_print.call_args_list)
@@ -91,10 +94,12 @@ Database will be PostgreSQL.
         """Test context command with invalid library name."""
         monkeypatch.chdir(temp_project)
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
-             patch('ai_sdlc.utils.ROOT', temp_project):
+        with (
+            patch("ai_sdlc.commands.context.ROOT", temp_project),
+            patch("ai_sdlc.utils.ROOT", temp_project),
+        ):
             with pytest.raises(SystemExit):
-                with patch('builtins.print') as mock_print:
+                with patch("builtins.print") as mock_print:
                     run_context(["--libraries", "inv@lid!"])
 
         output = " ".join(str(call[0][0]) for call in mock_print.call_args_list)
@@ -109,9 +114,11 @@ Database will be PostgreSQL.
         cache_dir.mkdir()
         (cache_dir / "react_00-idea.md").write_text("Cached content")
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
-             patch('ai_sdlc.utils.ROOT', temp_project):
-            with patch('builtins.print') as mock_print:
+        with (
+            patch("ai_sdlc.commands.context.ROOT", temp_project),
+            patch("ai_sdlc.utils.ROOT", temp_project),
+        ):
+            with patch("builtins.print") as mock_print:
                 run_context(["--show-cache"])
 
         output = " ".join(str(call[0][0]) for call in mock_print.call_args_list)
@@ -127,9 +134,11 @@ Database will be PostgreSQL.
         cache_dir.mkdir()
         (cache_dir / "test.md").write_text("test")
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
-             patch('ai_sdlc.utils.ROOT', temp_project):
-            with patch('builtins.print') as mock_print:
+        with (
+            patch("ai_sdlc.commands.context.ROOT", temp_project),
+            patch("ai_sdlc.utils.ROOT", temp_project),
+        ):
+            with patch("builtins.print") as mock_print:
                 run_context(["--clear-cache"])
 
         output = " ".join(str(call[0][0]) for call in mock_print.call_args_list)
@@ -144,10 +153,12 @@ Database will be PostgreSQL.
         # Remove lock file
         (temp_project / ".aisdlc.lock").write_text("{}")
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
-             patch('ai_sdlc.utils.ROOT', temp_project):
+        with (
+            patch("ai_sdlc.commands.context.ROOT", temp_project),
+            patch("ai_sdlc.utils.ROOT", temp_project),
+        ):
             with pytest.raises(SystemExit):
-                with patch('builtins.print') as mock_print:
+                with patch("builtins.print") as mock_print:
                     run_context([])
 
         output = " ".join(str(call[0][0]) for call in mock_print.call_args_list)
@@ -157,17 +168,21 @@ Database will be PostgreSQL.
         """Test context command with unknown argument."""
         monkeypatch.chdir(temp_project)
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
-             patch('ai_sdlc.utils.ROOT', temp_project):
+        with (
+            patch("ai_sdlc.commands.context.ROOT", temp_project),
+            patch("ai_sdlc.utils.ROOT", temp_project),
+        ):
             with pytest.raises(SystemExit):
-                with patch('builtins.print') as mock_print:
+                with patch("builtins.print") as mock_print:
                     run_context(["--unknown"])
 
         output = " ".join(str(call[0][0]) for call in mock_print.call_args_list)
         assert "Unknown argument" in output
 
-    @patch('ai_sdlc.commands.context.Context7Service')
-    def test_context_with_step_recommendations(self, mock_service_class, temp_project, monkeypatch):
+    @patch("ai_sdlc.commands.context.Context7Service")
+    def test_context_with_step_recommendations(
+        self, mock_service_class, temp_project, monkeypatch
+    ):
         """Test context command shows step-specific recommendations."""
         monkeypatch.chdir(temp_project)
 
@@ -179,15 +194,14 @@ Database will be PostgreSQL.
         mock_service_class.return_value = mock_service
 
         # Update lock to be on a test step
-        lock = {
-            "slug": "test-project",
-            "current": "01-prd"
-        }
+        lock = {"slug": "test-project", "current": "01-prd"}
         (temp_project / ".aisdlc.lock").write_text(json.dumps(lock))
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
-             patch('ai_sdlc.utils.ROOT', temp_project):
-            with patch('builtins.print') as mock_print:
+        with (
+            patch("ai_sdlc.commands.context.ROOT", temp_project),
+            patch("ai_sdlc.utils.ROOT", temp_project),
+        ):
+            with patch("builtins.print") as mock_print:
                 run_context([])
 
         # Should call get_step_specific_libraries for next step

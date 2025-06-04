@@ -42,9 +42,11 @@ def run_context(args: list[str] | None) -> None:
             for lib in lib_list:
                 lib = lib.strip()
                 # Validate library name (alphanumeric, dash, underscore)
-                if not lib or not all(c.isalnum() or c in '-_' for c in lib):
+                if not lib or not all(c.isalnum() or c in "-_" for c in lib):
                     print(f"❌  Error: Invalid library name: {lib}")
-                    print("   Library names must contain only letters, numbers, hyphens, and underscores")
+                    print(
+                        "   Library names must contain only letters, numbers, hyphens, and underscores"
+                    )
                     sys.exit(1)
                 if len(lib) > 50:
                     print(f"❌  Error: Library name too long: {lib}")
@@ -74,6 +76,7 @@ def run_context(args: list[str] | None) -> None:
     if clear_cache:
         if cache_dir.exists():
             import shutil
+
             shutil.rmtree(cache_dir)
             cache_dir.mkdir()
         print("✅  Context7 cache cleared.")
@@ -131,6 +134,7 @@ def run_context(args: list[str] | None) -> None:
 def main() -> None:
     """Entry point for testing."""
     import sys
+
     run_context(sys.argv[1:])
 
 

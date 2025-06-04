@@ -18,7 +18,9 @@ def test_run_init(temp_project_dir: Path, mocker):
         init.run_init()
 
         # Verify actual files/directories were created
-        assert (temp_project_dir / ".aisdlc").exists(), ".aisdlc config file should exist"
+        assert (temp_project_dir / ".aisdlc").exists(), (
+            ".aisdlc config file should exist"
+        )
         assert (temp_project_dir / "prompts").is_dir(), "prompts directory should exist"
         assert (temp_project_dir / "doing").is_dir(), "doing directory should exist"
         assert (temp_project_dir / "done").is_dir(), "done directory should exist"
@@ -33,17 +35,21 @@ def test_run_init(temp_project_dir: Path, mocker):
             "04-systems-patterns.prompt.yml",
             "05-tasks.prompt.yml",
             "06-tasks-plus.prompt.yml",
-            "07-tests.prompt.yml"
+            "07-tests.prompt.yml",
         ]
 
         for prompt_file in expected_prompts:
             prompt_path = temp_project_dir / "prompts" / prompt_file
             assert prompt_path.exists(), f"Prompt file {prompt_file} should exist"
-            assert prompt_path.stat().st_size > 0, f"Prompt file {prompt_file} should not be empty"
+            assert prompt_path.stat().st_size > 0, (
+                f"Prompt file {prompt_file} should not be empty"
+            )
 
         # Verify lock file content
         lock_content = (temp_project_dir / ".aisdlc.lock").read_text()
-        assert lock_content.strip() == "{}", "Lock file should contain empty JSON object"
+        assert lock_content.strip() == "{}", (
+            "Lock file should contain empty JSON object"
+        )
 
         # Verify .aisdlc config content has expected structure
         config_content = (temp_project_dir / ".aisdlc").read_text()

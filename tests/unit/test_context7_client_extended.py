@@ -66,7 +66,7 @@ class TestContext7ClientExtended:
         mock_stream.__aenter__.side_effect = [
             httpx.TimeoutException("timeout"),
             httpx.TimeoutException("timeout"),
-            mock_stream
+            mock_stream,
         ]
         mock_stream.__aexit__.return_value = None
         mock_stream.aiter_text.return_value = ["data: test\n\n"]
@@ -74,8 +74,8 @@ class TestContext7ClientExtended:
         mock_client = AsyncMock()
         mock_client.stream.return_value = mock_stream
 
-        with patch.object(client, '_ensure_client', return_value=mock_client):
-            with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch.object(client, "_ensure_client", return_value=mock_client):
+            with patch("asyncio.sleep", new_callable=AsyncMock):
                 result = await client._execute_tool("test-tool", {})
                 # Should succeed after retries
                 assert result is not None
@@ -87,15 +87,13 @@ class TestContext7ClientExtended:
 
         mock_stream = AsyncMock()
         mock_stream.__aenter__.side_effect = httpx.HTTPStatusError(
-            "401 Unauthorized",
-            request=Mock(),
-            response=Mock(status_code=401)
+            "401 Unauthorized", request=Mock(), response=Mock(status_code=401)
         )
 
         mock_client = AsyncMock()
         mock_client.stream.return_value = mock_stream
 
-        with patch.object(client, '_ensure_client', return_value=mock_client):
+        with patch.object(client, "_ensure_client", return_value=mock_client):
             result = await client._execute_tool("test-tool", {})
             assert result is None
             # Should only try once
@@ -112,7 +110,7 @@ class TestContext7ClientExtended:
             'event: session\ndata: {"id": "test-session"}\n\n',
             'event: result\ndata: {"content": "test result"}\n\n',
             'event: error\ndata: {"message": "test error"}\n\n',
-            'event: done\ndata: {}\n\n',
+            "event: done\ndata: {}\n\n",
         ]
 
         mock_stream = AsyncMock()
@@ -123,7 +121,7 @@ class TestContext7ClientExtended:
         mock_client = AsyncMock()
         mock_client.stream.return_value = mock_stream
 
-        with patch.object(client, '_ensure_client', return_value=mock_client):
+        with patch.object(client, "_ensure_client", return_value=mock_client):
             result = await client._execute_tool("test-tool", {})
             assert result == {"content": "test result"}
 
@@ -134,7 +132,9 @@ class TestContext7ClientExtended:
 
         mock_result = {"content": "# Library Docs\n\nTest documentation"}
 
-        with patch.object(client, '_execute_tool', new_callable=AsyncMock, return_value=mock_result):
+        with patch.object(
+            client, "_execute_tool", new_callable=AsyncMock, return_value=mock_result
+        ):
             docs = await client.get_library_docs("/test/library", "test topic", 1000)
             assert "# Library Docs" in docs
             assert "Test documentation" in docs
@@ -144,7 +144,9 @@ class TestContext7ClientExtended:
         """Test library docs when no content returned."""
         client = Context7Client()
 
-        with patch.object(client, '_execute_tool', new_callable=AsyncMock, return_value=None):
+        with patch.object(
+            client, "_execute_tool", new_callable=AsyncMock, return_value=None
+        ):
             docs = await client.get_library_docs("/test/library", "test", 1000)
             assert docs == ""
 
@@ -153,7 +155,12 @@ class TestContext7ClientExtended:
         """Test library docs with empty content."""
         client = Context7Client()
 
-        with patch.object(client, '_execute_tool', new_callable=AsyncMock, return_value={"content": ""}):
+        with patch.object(
+            client,
+            "_execute_tool",
+            new_callable=AsyncMock,
+            return_value={"content": ""},
+        ):
             docs = await client.get_library_docs("/test/library", "test", 1000)
             assert docs == ""
 
@@ -164,19 +171,23 @@ class TestContext7ClientExtended:
         # Mock the response structure expected by resolve_library_id
         mock_result = {
             "result": {
-                "content": [{
-                    "text": """- Title: Pytest
+                "content": [
+                    {
+                        "text": """- Title: Pytest
                     - Context7-compatible library ID: /pytest-dev/pytest
                     - Description: Testing framework
                     - Code Snippets: 100
                     - Trust Score: 9.5
                     ----------
                     """
-                }]
+                    }
+                ]
             }
         }
 
-        with patch.object(client, '_execute_tool_with_retry', new=AsyncMock(return_value=mock_result)):
+        with patch.object(
+            client, "_execute_tool_with_retry", new=AsyncMock(return_value=mock_result)
+        ):
             result = client.resolve_library_id("pytest")
             assert result == "/pytest-dev/pytest"
 
@@ -187,7 +198,9 @@ class TestContext7ClientExtended:
         # Return malformed result
         mock_result = {"results": "not-a-list"}
 
-        with patch.object(client, '_execute_tool_with_retry', new=AsyncMock(return_value=mock_result)):
+        with patch.object(
+            client, "_execute_tool_with_retry", new=AsyncMock(return_value=mock_result)
+        ):
             result = client.resolve_library_id("pytest")
             assert result is None
 
@@ -243,7 +256,7 @@ class TestContext7ClientExtended:
         """Test parsing docs content preserves code blocks."""
         client = Context7Client()
 
-        content = '''
+        content = """
 # Test Library
 
 Here's an example:
@@ -258,7 +271,7 @@ More text here.
 ```javascript
 console.log("test");
 ```
-'''
+"""
 
         result = client._parse_docs_content(content)
         assert "```python" in result
@@ -277,8 +290,8 @@ console.log("test");
         mock_client = AsyncMock()
         mock_client.stream.return_value = mock_stream
 
-        with patch.object(client, '_ensure_client', return_value=mock_client):
-            with patch('asyncio.sleep', new_callable=AsyncMock):
+        with patch.object(client, "_ensure_client", return_value=mock_client):
+            with patch("asyncio.sleep", new_callable=AsyncMock):
                 with pytest.raises(httpx.ConnectError):
                     await client._execute_tool("test-tool", {})
 
@@ -293,7 +306,7 @@ console.log("test");
         # Simulate SSE that never sends endpoint
         async def slow_iter():
             await asyncio.sleep(0.1)
-            yield 'event: other\ndata: {}\n\n'
+            yield "event: other\ndata: {}\n\n"
 
         mock_stream = AsyncMock()
         mock_stream.__aenter__.return_value = mock_stream
@@ -305,8 +318,10 @@ console.log("test");
 
         client.timeout = httpx.Timeout(0.05)  # Very short timeout
 
-        with patch.object(client, '_ensure_client', return_value=mock_client):
-            with pytest.raises(Context7TimeoutError, match="Timeout waiting for SSE endpoint"):
+        with patch.object(client, "_ensure_client", return_value=mock_client):
+            with pytest.raises(
+                Context7TimeoutError, match="Timeout waiting for SSE endpoint"
+            ):
                 await client._execute_tool("test-tool", {})
 
     def test_code_block_pattern_matching(self):

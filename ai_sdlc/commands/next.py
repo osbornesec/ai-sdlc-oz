@@ -12,20 +12,32 @@ from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 PLACEHOLDER = "<prev_step></prev_step>"
 
 
-def _validate_required_files(prev_file: Path, prompt_file: Path, prev_step: str, next_step: str, conf: dict[str, Any]) -> None:
+def _validate_required_files(
+    prev_file: Path,
+    prompt_file: Path,
+    prev_step: str,
+    next_step: str,
+    conf: dict[str, Any],
+) -> None:
     """Validate that required files exist."""
     if not prev_file.exists():
         print(f"❌ Error: The previous step's output file '{prev_file}' is missing.")
         print(f"   This file is required as input to generate the '{next_step}' step.")
-        print("   Please restore this file (e.g., from version control) or ensure it was correctly generated.")
-        print(f"   If you need to restart the '{prev_step}', you might need to adjust '.aisdlc.lock' or re-run the command that generates '{prev_step}'.")
+        print(
+            "   Please restore this file (e.g., from version control) or ensure it was correctly generated."
+        )
+        print(
+            f"   If you need to restart the '{prev_step}', you might need to adjust '.aisdlc.lock' or re-run the command that generates '{prev_step}'."
+        )
         sys.exit(1)
 
     if not prompt_file.exists():
         print(f"❌ Critical Error: Prompt template file '{prompt_file}' is missing.")
         print(f"   This file is essential for generating the '{next_step}' step.")
         print(f"   Please ensure it exists in your '{conf['prompt_dir']}/' directory.")
-        print("   You may need to restore it from version control or your initial 'aisdlc init' setup.")
+        print(
+            "   You may need to restore it from version control or your initial 'aisdlc init' setup."
+        )
         sys.exit(1)
 
 
@@ -38,10 +50,19 @@ def _read_and_merge_content(prev_file: Path, prompt_file: Path) -> str:
     return prompt_template_content.replace(PLACEHOLDER, prev_step_content)
 
 
-def _apply_context7_enrichment(conf: dict[str, Any], merged_prompt: str, workdir: Path,
-                               steps: list[str], idx: int, slug: str, next_step: str) -> str:
+def _apply_context7_enrichment(
+    conf: dict[str, Any],
+    merged_prompt: str,
+    workdir: Path,
+    steps: list[str],
+    idx: int,
+    slug: str,
+    next_step: str,
+) -> str:
     """Apply Context7 enrichment if enabled."""
-    context7_enabled = conf.get("context7", {}).get("enabled", True)  # Default to enabled
+    context7_enabled = conf.get("context7", {}).get(
+        "enabled", True
+    )  # Default to enabled
     if not context7_enabled:
         return merged_prompt
 
@@ -71,26 +92,34 @@ def _apply_context7_enrichment(conf: dict[str, Any], merged_prompt: str, workdir
     return enriched_prompt
 
 
-def _write_prompt_and_show_instructions(prompt_output_file: Path, merged_prompt: str,
-                                       next_step: str, next_file: Path) -> None:
+def _write_prompt_and_show_instructions(
+    prompt_output_file: Path, merged_prompt: str, next_step: str, next_file: Path
+) -> None:
     """Write prompt file and display instructions."""
     prompt_output_file.write_text(merged_prompt)
 
     print(f"📝  Generated AI prompt file: {prompt_output_file}")
-    print(f"🤖  Please use this prompt with your preferred AI tool to generate content for step '{next_step}'")
+    print(
+        f"🤖  Please use this prompt with your preferred AI tool to generate content for step '{next_step}'"
+    )
     print(f"    Then save the AI's response to: {next_file}")
     print()
     print("💡  Options:")
-    print("    • Copy the prompt content and paste into any AI chat (Claude, ChatGPT, etc.)")
+    print(
+        "    • Copy the prompt content and paste into any AI chat (Claude, ChatGPT, etc.)"
+    )
     print("    • Use with Cursor: cursor agent --file " + str(prompt_output_file))
     print("    • Use with any other AI-powered editor or CLI tool")
     print()
-    print(f"⏭️   After saving the AI response, the next step file should be: {next_file}")
+    print(
+        f"⏭️   After saving the AI response, the next step file should be: {next_file}"
+    )
     print("    Once ready, run 'aisdlc next' again to continue to the next step.")
 
 
-def _handle_next_step_file(next_file: Path, next_step: str, lock: dict[str, Any],
-                          prompt_output_file: Path) -> None:
+def _handle_next_step_file(
+    next_file: Path, next_step: str, lock: dict[str, Any], prompt_output_file: Path
+) -> None:
     """Check if next step file exists and handle accordingly."""
     if next_file.exists():
         print(f"✅  Found existing file: {next_file}")
@@ -107,10 +136,14 @@ def _handle_next_step_file(next_file: Path, next_step: str, lock: dict[str, Any]
             print(f"🧹  Cleaned up prompt file: {prompt_output_file}")
     else:
         print(f"⏸️   Waiting for you to create: {next_file}")
-        print("    Use the generated prompt with your AI tool, then run 'aisdlc next' again.")
+        print(
+            "    Use the generated prompt with your AI tool, then run 'aisdlc next' again."
+        )
 
 
-def _validate_workflow_state(conf: dict[str, Any], lock: dict[str, Any]) -> tuple[str, int, list[str]]:
+def _validate_workflow_state(
+    conf: dict[str, Any], lock: dict[str, Any]
+) -> tuple[str, int, list[str]]:
     """Validate workflow state and return slug, current index, and steps."""
     if not lock:
         print("❌  No active workstream. Run `aisdlc new` first.")
@@ -127,7 +160,9 @@ def _validate_workflow_state(conf: dict[str, Any], lock: dict[str, Any]) -> tupl
     return slug, idx, steps
 
 
-def _prepare_file_paths(conf: dict[str, Any], slug: str, prev_step: str, next_step: str) -> tuple[Path, Path, Path, Path, Path]:
+def _prepare_file_paths(
+    conf: dict[str, Any], slug: str, prev_step: str, next_step: str
+) -> tuple[Path, Path, Path, Path, Path]:
     """Prepare and return all required file paths."""
     workdir = ROOT / conf["active_dir"] / slug
     prev_file = workdir / f"{prev_step}-{slug}.md"
@@ -157,8 +192,8 @@ def run_next(args: list[str] | None = None) -> None:
     next_step = steps[idx + 1]
 
     # Prepare file paths
-    workdir, prev_file, prompt_file, next_file, prompt_output_file = _prepare_file_paths(
-        conf, slug, prev_step, next_step
+    workdir, prev_file, prompt_file, next_file, prompt_output_file = (
+        _prepare_file_paths(conf, slug, prev_step, next_step)
     )
 
     # Validate required files
@@ -173,7 +208,9 @@ def run_next(args: list[str] | None = None) -> None:
     )
 
     # Write prompt and display instructions
-    _write_prompt_and_show_instructions(prompt_output_file, merged_prompt, next_step, next_file)
+    _write_prompt_and_show_instructions(
+        prompt_output_file, merged_prompt, next_step, next_file
+    )
 
     # Check and handle existing next step file
     _handle_next_step_file(next_file, next_step, lock, prompt_output_file)

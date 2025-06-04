@@ -91,14 +91,14 @@ class TestContext7Service:
         # Valid cache entry (recent)
         valid_entry = {
             "timestamp": datetime.now().isoformat(),
-            "library_id": "test-lib"
+            "library_id": "test-lib",
         }
         assert service._is_cache_valid(valid_entry)
 
         # Invalid cache entry (old)
         old_entry = {
             "timestamp": (datetime.now() - timedelta(days=8)).isoformat(),
-            "library_id": "test-lib"
+            "library_id": "test-lib",
         }
         assert not service._is_cache_valid(old_entry)
 
@@ -110,7 +110,7 @@ class TestContext7Service:
         """Test documentation formatting."""
         library_docs = {
             "react": "React documentation content",
-            "fastapi": "FastAPI documentation content"
+            "fastapi": "FastAPI documentation content",
         }
 
         formatted = service.format_library_docs_section(library_docs)
@@ -126,8 +126,10 @@ class TestContext7Service:
         formatted = service.format_library_docs_section({})
         assert formatted == ""
 
-    @patch('ai_sdlc.services.context7_service.Context7Client')
-    def test_enrich_prompt_with_cache_hit(self, mock_client_class, service, temp_cache_dir):
+    @patch("ai_sdlc.services.context7_service.Context7Client")
+    def test_enrich_prompt_with_cache_hit(
+        self, mock_client_class, service, temp_cache_dir
+    ):
         """Test prompt enrichment with cached documentation."""
         # Setup cache
         cache_key = "react_3-system-template"
@@ -136,7 +138,7 @@ class TestContext7Service:
 
         service.cache_index[cache_key] = {
             "timestamp": datetime.now().isoformat(),
-            "library_id": "/react/react"
+            "library_id": "/react/react",
         }
         service._save_cache_index()
 
@@ -150,7 +152,7 @@ class TestContext7Service:
         assert "<context7_docs>" not in enriched
         mock_client_class.return_value.resolve_library_id.assert_not_called()
 
-    @patch('ai_sdlc.services.context7_service.Context7Client')
+    @patch("ai_sdlc.services.context7_service.Context7Client")
     def test_enrich_prompt_with_cache_miss(self, mock_client_class, service):
         """Test prompt enrichment without cache."""
         # Setup mock client
@@ -175,7 +177,9 @@ class TestContext7Service:
     def test_create_context_command_output(self, service):
         """Test context command output formatting."""
         detected_libs = ["react", "fastapi", "postgresql"]
-        output = service.create_context_command_output("3-system-template", detected_libs)
+        output = service.create_context_command_output(
+            "3-system-template", detected_libs
+        )
 
         assert "Context7 Library Detection" in output
         assert "react" in output
@@ -207,5 +211,5 @@ class TestContext7Service:
         assert len(LIBRARY_PATTERNS) > 0
         for pattern in LIBRARY_PATTERNS:
             # Verify these are compiled regex objects
-            assert hasattr(pattern, 'pattern')
-            assert hasattr(pattern, 'findall')
+            assert hasattr(pattern, "pattern")
+            assert hasattr(pattern, "findall")
