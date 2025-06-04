@@ -43,4 +43,12 @@ When you receive the PRD in the format `<prev_step>{the contents of the prd go h
     *   Is the prioritization of features logical and justified?
     *   Are there any low-value features that could be deferred or cut?
 
-Your output should be a series of pointed questions, challenges, and potential concerns, framed constructively to help the original author refine and improve the PRD. Think like a devil's advocate who ultimately wants the product to succeed. 
+9.  **Assess Clarity of Requirements Communication:**
+    *   Does the PRD utilize illustrative examples, such as `ai-chat` blocks, to clarify complex user stories or feature requirements? For instance, a brief dialogue showing a user asking for clarification and an AI (or product representative) providing a concise answer can significantly improve understanding.
+    *   If such examples are missing, especially for intricate features, suggest their inclusion. Example:
+      ```markdown
+      User: For US-003, what kind of notifications are we expecting?
+      AI: For US-003, the notifications should be in-app pop-ups and optionally email notifications if the user has them enabled in their preferences.
+      ```
+
+Your output should be a series of pointed questions, challenges, and potential concerns, framed constructively to help the original author refine and improve the PRD. Think like a devil's advocate who ultimately wants the product to succeed.

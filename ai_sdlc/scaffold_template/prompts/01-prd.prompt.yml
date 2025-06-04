@@ -30,3 +30,8 @@ Follow these steps to create the PRD:
 - Include at least one user story specifically for secure access or authentication if the application requires user identification or access restrictions
 - Ensure no potential user interaction is omitted
 - Make sure each user story is testable
+7. Include an example of an `ai-chat` block within one of the sections of the PRD (e.g., near a user story or a feature description). This block should demonstrate a brief, illustrative interaction, such as a user asking for clarification on a requirement and the AI providing a context-aware answer. For instance:
+```markdown
+User: For US-003, what kind of notifications are we expecting?
+AI: For US-003, the notifications should be in-app pop-ups and optionally email notifications if the user has them enabled in their preferences.
+```

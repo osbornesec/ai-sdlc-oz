@@ -52,4 +52,12 @@ Specifically verify that:
    - The VPS file tree structure is comprehensive
    - All file references throughout the tasks match the structure
 
+9. **Illustrative Interactions**:
+   - For complex tasks, or where ambiguity might arise, ensure that illustrative `ai-chat` blocks are included. These can demonstrate quick clarifications about dependencies, acceptance criteria, or technical details.
+   - If such examples are missing and would benefit clarity, add them. For instance:
+     ```markdown
+     User: What are the key dependencies for implementing Task-101?
+     AI: Task-101 depends on the completion of Task-095 (API Endpoint Creation) and the availability of the staging database.
+     ```
+
 Make any necessary additions, clarifications, or corrections to ensure the document serves as a complete implementation guide that requires no additional context or tribal knowledge to execute successfully.

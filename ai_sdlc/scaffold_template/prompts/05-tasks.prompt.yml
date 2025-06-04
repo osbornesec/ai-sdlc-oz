@@ -23,6 +23,11 @@ For the *exemplar* tasks within *this* document, the following were used (and yo
 3.  **Task Generation & Checkboxes:** Generate new tasks with `[ ]` (empty checkbox) as their initial status. The `[x]` in the exemplar below indicates a *completed* example task.
 4.  **Atomicity:** Break down the work from the PRD into the smallest logical, actionable, and verifiable steps.
 5.  **Detail:** Provide as much specific detail as possible for each task, including file paths, code snippets, or configuration examples if appropriate and inferable from the PRD or associated documents.
+6.  **Illustrative Chat Examples:** For complex tasks or where clarification might be beneficial, include an `ai-chat` block within the task's "Action(s)" or "Objective" to showcase a brief, illustrative interaction. This could be a discussion about the task's details, dependencies, or acceptance criteria. For example:
+    ```markdown
+    User: What are the key dependencies for implementing Task-101?
+    AI: Task-101 depends on the completion of Task-095 (API Endpoint Creation) and the availability of the staging database.
+    ```
 
 ---
 

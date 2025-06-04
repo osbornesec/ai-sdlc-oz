@@ -56,6 +56,14 @@ You will receive the PRD-plus for the project in the following block:
     *   **E. Critical Implementation Paths:**
         *   Outline the key steps or sequence of development to implement the core of the proposed architecture. This helps in planning and prioritizing.
 
+6.  **Use `ai-qa` for Clarifications:** When explaining specific technical components, design choices, or patterns, consider embedding an `ai-qa` block to proactively offer clarification. This makes the document more interactive and easier to understand. For example, when introducing a component:
+    ```markdown
+    AI: The 'load balancer' component is mentioned. Would you like a brief explanation of its role in this system?
+    User: Yes.
+    AI: In this system, the load balancer will distribute incoming API requests across multiple backend server instances. This improves responsiveness and reliability by preventing any single server from being overwhelmed.
+    ```
+    Integrate such blocks naturally within your explanations in the "Architectural Explanation" or "System Patterns" sections of your output.
+
 **Output Format:**
 
 Present your response in a clear, structured Markdown format as follows:
