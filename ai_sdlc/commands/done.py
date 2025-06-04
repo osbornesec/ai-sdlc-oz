@@ -6,7 +6,15 @@ import sys
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
 
-def run_done(args: list[str] = None) -> None:
+def run_done(args: list[str] | None = None) -> None:
+    """Archive the current workstream to done/ and reset the lock.
+
+    Args:
+        args: Command line arguments (currently unused)
+
+    Raises:
+        SystemExit: If filesystem operations fail
+    """
     conf = load_config()
     steps = conf["steps"]
     lock = read_lock()

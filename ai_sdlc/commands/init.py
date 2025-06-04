@@ -77,8 +77,15 @@ PROMPT_FILE_NAMES = [
 ]
 
 
-def run_init(args: list[str] = None) -> None:
-    """Scaffold AI-SDLC project: .aisdlc, prompts/, doing/, done/, .aisdlc.lock and print instructions."""
+def run_init(args: list[str] | None = None) -> None:
+    """Scaffold AI-SDLC project: .aisdlc, prompts/, doing/, done/, .aisdlc.lock and print instructions.
+
+    Args:
+        args: Command line arguments (currently unused)
+
+    Raises:
+        SystemExit: If critical errors occur during initialization
+    """
     print("Initializing AI-SDLC project...")
 
     # Use current working directory for init (since .aisdlc doesn't exist yet)
@@ -101,11 +108,27 @@ def run_init(args: list[str] = None) -> None:
         )
         sys.exit(1)
 
-    # Create directories
+    # Create directories with validation
     prompts_target_dir = init_root / "prompts"
+    doing_dir = init_root / "doing"
+    done_dir = init_root / "done"
+
+    # Validate paths to prevent traversal
+    for dir_path in [prompts_target_dir, doing_dir, done_dir]:
+        try:
+            # Resolve to absolute path and ensure it's within project root
+            resolved_path = dir_path.resolve()
+            if not str(resolved_path).startswith(str(init_root.resolve())):
+                print(f"❌ Security Error: Path traversal detected for {dir_path}")
+                sys.exit(1)
+        except Exception as e:
+            print(f"❌ Error validating path {dir_path}: {e}")
+            sys.exit(1)
+
+    # Create directories after validation
     prompts_target_dir.mkdir(exist_ok=True)
-    (init_root / "doing").mkdir(exist_ok=True)
-    (init_root / "done").mkdir(exist_ok=True)
+    doing_dir.mkdir(exist_ok=True)
+    done_dir.mkdir(exist_ok=True)
     print(
         f"📂 Created/ensured directories: {prompts_target_dir.relative_to(Path.cwd())}, doing/, done/"
     )

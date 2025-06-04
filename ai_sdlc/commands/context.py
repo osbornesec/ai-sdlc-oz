@@ -3,30 +3,53 @@
 from __future__ import annotations
 
 import sys
-from pathlib import Path
 
 from ai_sdlc.services.context7_service import Context7Service
 from ai_sdlc.utils import ROOT, load_config, read_lock
 
 
-def run_context(args: list[str]) -> None:
-    """Manage Context7 documentation for current step."""
+def run_context(args: list[str] | None) -> None:
+    """Manage Context7 documentation for current step.
+
+    Args:
+        args: Command line arguments for context command
+              Supports --libraries, --show-cache, --clear-cache
+
+    Raises:
+        SystemExit: If no active workstream or invalid arguments
+    """
     config = load_config()
     lock = read_lock()
-    
+
     if not lock:
         print("❌  No active workstream. Run `aisdlc new` first.")
         sys.exit(1)
-    
+
     # Parse arguments
-    force_libraries = []
+    force_libraries: list[str] = []
     show_cache = False
     clear_cache = False
-    
+
+    if not args:
+        args = []
+
     i = 0
     while i < len(args):
         if args[i] == "--libraries" and i + 1 < len(args):
-            force_libraries = [lib.strip() for lib in args[i + 1].split(",")]
+            # Validate library names
+            lib_list = args[i + 1].split(",")
+            force_libraries = []
+            for lib in lib_list:
+                lib = lib.strip()
+                # Validate library name (alphanumeric, dash, underscore)
+                if not lib or not all(c.isalnum() or c in '-_' for c in lib):
+                    print(f"❌  Error: Invalid library name: {lib}")
+                    print("   Library names must contain only letters, numbers, hyphens, and underscores")
+                    sys.exit(1)
+                if len(lib) > 50:
+                    print(f"❌  Error: Library name too long: {lib}")
+                    sys.exit(1)
+                force_libraries.append(lib)
             i += 2
         elif args[i] == "--show-cache":
             show_cache = True
@@ -42,11 +65,11 @@ def run_context(args: list[str]) -> None:
             print("  --show-cache          Show cached documentation")
             print("  --clear-cache         Clear documentation cache")
             sys.exit(1)
-    
+
     # Initialize Context7 service
     cache_dir = ROOT / ".context7_cache"
     context7 = Context7Service(cache_dir)
-    
+
     # Handle cache operations
     if clear_cache:
         if cache_dir.exists():
@@ -55,7 +78,7 @@ def run_context(args: list[str]) -> None:
             cache_dir.mkdir()
         print("✅  Context7 cache cleared.")
         return
-    
+
     if show_cache:
         if not cache_dir.exists() or not any(cache_dir.iterdir()):
             print("📭  Context7 cache is empty.")
@@ -66,34 +89,34 @@ def run_context(args: list[str]) -> None:
                 size_kb = file.stat().st_size / 1024
                 print(f"  • {file.stem}: {size_kb:.1f} KB")
         return
-    
+
     # Get current step and content
     slug = lock["slug"]
     current_step = lock["current"]
     steps = config["steps"]
     step_index = steps.index(current_step)
-    
+
     workdir = ROOT / config["active_dir"] / slug
-    
+
     # Read all previous content to build context
     all_content = []
     for i in range(step_index + 1):
         step_file = workdir / f"{steps[i]}-{slug}.md"
         if step_file.exists():
             all_content.append(step_file.read_text())
-    
+
     combined_content = "\n\n".join(all_content)
-    
+
     # Detect or use forced libraries
     if force_libraries:
         detected_libraries = force_libraries
     else:
         detected_libraries = context7.extract_libraries_from_text(combined_content)
-    
+
     # Generate output
     output = context7.create_context_command_output(current_step, detected_libraries)
     print(output)
-    
+
     # If we're about to generate a prompt, show what will be included
     if step_index + 1 < len(steps):
         next_step = steps[step_index + 1]
@@ -105,7 +128,7 @@ def run_context(args: list[str]) -> None:
                     print(f"  • {lib} (add with: aisdlc context --libraries {lib})")
 
 
-def main():
+def main() -> None:
     """Entry point for testing."""
     import sys
     run_context(sys.argv[1:])

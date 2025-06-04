@@ -8,6 +8,9 @@ import sys
 import unicodedata
 from pathlib import Path
 
+from .config_validator import ConfigValidationError, validate_config
+from .types import ConfigDict, LockDict
+
 
 def find_project_root() -> Path:
     """Find project root by searching for .aisdlc file in current and parent directories."""
@@ -24,12 +27,20 @@ ROOT = find_project_root()
 
 # --- TOML loader (Python ≥3.11 stdlib) --------------------------------------
 try:
-    import tomllib as _toml  # Python 3.11+
+    import tomllib as toml_lib  # Python 3.11+
 except ModuleNotFoundError:  # pragma: no cover – fallback for < 3.11
-    import tomli as _toml  # noqa: D401  # `uv pip install tomli`
+    import tomli as toml_lib  # noqa: D401  # `uv pip install tomli`
 
 
-def load_config() -> dict:
+def load_config() -> ConfigDict:
+    """Load and validate configuration from .aisdlc file.
+
+    Returns:
+        Parsed and validated configuration
+
+    Raises:
+        SystemExit: If config file is missing or corrupted
+    """
     cfg_path = ROOT / ".aisdlc"
     if not cfg_path.exists():
         print(
@@ -38,26 +49,56 @@ def load_config() -> dict:
         print("Run `aisdlc init` to initialize a new project.")
         sys.exit(1)
     try:
-        return _toml.loads(cfg_path.read_text())
-    except _toml.TOMLDecodeError as e:
+        config_data = toml_lib.loads(cfg_path.read_text())
+        # Validate configuration structure
+        validated_config = validate_config(config_data)
+        return validated_config
+    except toml_lib.TOMLDecodeError as e:
         print(f"❌ Error: '.aisdlc' configuration file is corrupted: {e}")
+        print("Please fix the .aisdlc file or run 'aisdlc init' in a new directory.")
+        sys.exit(1)
+    except ConfigValidationError as e:
+        print(f"❌ Error: Invalid configuration: {e}")
         print("Please fix the .aisdlc file or run 'aisdlc init' in a new directory.")
         sys.exit(1)
 
 
 def slugify(text: str) -> str:
-    """kebab-case ascii only"""
+    """Convert text to kebab-case ASCII slug.
+
+    Args:
+        text: Input text to convert to slug
+
+    Returns:
+        kebab-case ASCII slug
+
+    Raises:
+        ValueError: If text is empty or contains no valid characters
+    """
+    if not text or not text.strip():
+        raise ValueError("Cannot slugify empty text")
+
     slug = unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode()
     slug = re.sub(r"[^a-zA-Z0-9]+", "-", slug).strip("-").lower()
-    return slug or "idea"
+
+    if not slug:
+        raise ValueError(f"Text '{text}' contains no valid characters for slug")
+
+    return slug
 
 
-def read_lock() -> dict:
+def read_lock() -> LockDict:
+    """Read and parse the lock file.
+
+    Returns:
+        Lock file data or empty dict if file doesn't exist or is corrupted
+    """
     path = ROOT / ".aisdlc.lock"
     if not path.exists():
         return {}
     try:
-        return json.loads(path.read_text())
+        lock_data = json.loads(path.read_text())
+        return lock_data
     except json.JSONDecodeError:
         print(
             "⚠️  Warning: '.aisdlc.lock' file is corrupted or not valid JSON. Treating as empty."
@@ -65,5 +106,10 @@ def read_lock() -> dict:
         return {}
 
 
-def write_lock(data: dict) -> None:
+def write_lock(data: LockDict) -> None:
+    """Write lock data to file.
+
+    Args:
+        data: Lock data to write
+    """
     (ROOT / ".aisdlc.lock").write_text(json.dumps(data, indent=2))
