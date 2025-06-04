@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import portalocker
 import json
 import logging
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
+
+import portalocker
 
 from ..library_mappings import LIBRARY_MAPPINGS, LIBRARY_PATTERNS
 from ..types import CacheEntry

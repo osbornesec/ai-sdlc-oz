@@ -13,20 +13,20 @@ def test_slugify():
     assert utils.slugify("Special!@#Chars") == "special-chars"
     assert utils.slugify("Test123") == "test123"
     assert utils.slugify("unicode-café") == "unicode-cafe"
-    
+
     # Test error cases
     with pytest.raises(ValueError, match="Cannot slugify empty text"):
         utils.slugify("")
-    
+
     with pytest.raises(ValueError, match="Cannot slugify empty text"):
         utils.slugify("   ")
-    
+
     with pytest.raises(ValueError, match="contains no valid characters"):
         utils.slugify("!@#$%^&*()")
-    
+
     with pytest.raises(ValueError, match="contains no valid characters"):
         utils.slugify("---")
-        
+
     # Test edge cases
     assert utils.slugify("a") == "a"
     assert utils.slugify("1") == "1"
