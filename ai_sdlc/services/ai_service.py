@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from typing import Optional
+
 from ..types import AiProviderConfig
 
 # Define custom exceptions for the AI service
@@ -56,11 +57,11 @@ def generate_text_openai(
         raise AiServiceError(
             "OpenAI library is not installed. Please install it with: pip install openai"
         ) from e
-    
+
     # Validate timeout
     if timeout_seconds <= 0:
         raise AiServiceError("timeout_seconds must be a positive integer")
-    
+
     try:
         client = openai.OpenAI(api_key=api_key)
 
@@ -95,7 +96,7 @@ def generate_text_anthropic(
     model: str,
     api_key: str,
     timeout_seconds: int,
-    max_tokens: Optional[int] = None
+    max_tokens: int | None = None
 ) -> str:
     """Generates text using the Anthropic API."""
     try:
@@ -105,11 +106,11 @@ def generate_text_anthropic(
         raise AiServiceError(
             "Anthropic library is not installed. Please install it with: pip install anthropic"
         ) from e
-    
+
     # Validate timeout
     if timeout_seconds <= 0:
         raise AiServiceError("timeout_seconds must be a positive integer")
-    
+
     try:
         client = anthropic.Anthropic(api_key=api_key, timeout=float(timeout_seconds)) # timeout expects float
 
@@ -182,7 +183,7 @@ def generate_text(
         return generate_text_openai(prompt, model, api_key, timeout)
     if provider_name == "anthropic":
         return generate_text_anthropic(prompt, model, api_key, timeout, max_tokens)
-    
+
     raise UnsupportedProviderError(
         f"Unsupported AI provider: {provider_name}. Supported providers are: 'openai', 'anthropic', 'manual'."
         )

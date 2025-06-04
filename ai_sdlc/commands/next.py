@@ -6,16 +6,16 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from ai_sdlc.services.ai_service import (
+    AiServiceError,
+    ApiKeyMissingError,
+    OpenAIError,
+    UnsupportedProviderError,
+    generate_text,
+)
 from ai_sdlc.services.context7_service import Context7Service
 from ai_sdlc.types import ConfigDict, LockDict
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
-from ai_sdlc.services.ai_service import (
-    generate_text,
-    AiServiceError,
-    ApiKeyMissingError,
-    UnsupportedProviderError,
-    OpenAIError,
-)
 
 PLACEHOLDER = "<prev_step></prev_step>"
 
