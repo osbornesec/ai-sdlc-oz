@@ -12,7 +12,7 @@ def test_slugify():
     assert utils.slugify("  Test Slug with Spaces  ") == "test-slug-with-spaces"
     assert utils.slugify("Special!@#Chars") == "special-chars"
     assert utils.slugify("Test123") == "test123"
-    assert utils.slugify("unicode-café") == "unicode-caf"
+    assert utils.slugify("unicode-café") == "unicode-cafe"
     
     # Test error cases
     with pytest.raises(ValueError, match="Cannot slugify empty text"):
@@ -36,8 +36,10 @@ def test_slugify():
 def test_load_config_success(temp_project_dir: Path, mocker):
     mock_aisdlc_content = """
     version = "0.1.0"
-    steps = ["01-idea", "02-prd"]
+    steps = ["00-idea", "01-prd"]
     prompt_dir = "prompts"
+    active_dir = "doing"
+    done_dir = "done"
     """
     aisdlc_file = temp_project_dir / ".aisdlc"
     aisdlc_file.write_text(mock_aisdlc_content)
@@ -48,7 +50,7 @@ def test_load_config_success(temp_project_dir: Path, mocker):
 
     config = utils.load_config()
     assert config["version"] == "0.1.0"
-    assert config["steps"] == ["01-idea", "02-prd"]
+    assert config["steps"] == ["00-idea", "01-prd"]
 
 
 def test_load_config_missing(temp_project_dir: Path, mocker):

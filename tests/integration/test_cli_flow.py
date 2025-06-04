@@ -37,9 +37,9 @@ def test_full_lifecycle_flow(temp_project_dir: Path, mocker):
     # Verify files and directories created by init
     assert (temp_project_dir / ".aisdlc").exists()
     assert (temp_project_dir / "prompts").is_dir()
-    assert (temp_project_dir / "prompts" / "0-idea.prompt.yml").exists()
+    assert (temp_project_dir / "prompts" / "00-idea.prompt.yml").exists()
     assert (
-        temp_project_dir / "prompts" / "1-prd.prompt.yml"
+        temp_project_dir / "prompts" / "01-prd.prompt.yml"
     ).exists()  # Check one of the key prompts for 'next'
     assert (temp_project_dir / "doing").is_dir()
     assert (temp_project_dir / "done").is_dir()
@@ -90,7 +90,7 @@ def test_full_lifecycle_flow(temp_project_dir: Path, mocker):
     assert lock_content["slug"] == idea_slug
     assert lock_content["current"] == test_steps[0]  # e.g., "01-idea"
 
-    # 3. Run next command (advancing from 0-idea to 1-prd)
+    # 3. Run next command (advancing from 00-idea to 01-prd)
     # This should generate a prompt file for the user to use with their AI tool
     result = run_aisdlc_command(temp_project_dir, "next")
     assert result.returncode == 0, (
@@ -117,15 +117,15 @@ def test_full_lifecycle_flow(temp_project_dir: Path, mocker):
 
     # Check that the workflow state was updated
     lock_content = json.loads(lock_file.read_text())
-    assert lock_content["current"] == test_steps[1]  # e.g., "1-prd"
+    assert lock_content["current"] == test_steps[1]  # e.g., "01-prd"
 
     # Check that the prompt file was cleaned up
     assert not prompt_file.exists(), (
         f"Prompt file {prompt_file} should have been cleaned up"
     )
 
-    # 4. Run next command again (advancing from 1-prd to 2-prd-plus)
-    # Ensure a prompt file for 2-prd-plus.prompt.yml exists from init
+    # 4. Run next command again (advancing from 01-prd to 02-prd-plus)
+    # Ensure a prompt file for 02-prd-plus.prompt.yml exists from init
     assert (temp_project_dir / "prompts" / f"{test_steps[2]}.prompt.yml").exists()
 
     result = run_aisdlc_command(temp_project_dir, "next")
@@ -156,7 +156,7 @@ def test_full_lifecycle_flow(temp_project_dir: Path, mocker):
     )
 
     lock_content = json.loads(lock_file.read_text())
-    assert lock_content["current"] == test_steps[2]  # e.g., "2-prd-plus"
+    assert lock_content["current"] == test_steps[2]  # e.g., "02-prd-plus"
 
     # 5. Run done command (after advancing through all steps)
     # For a full test, we'd loop `next` until the last step.
