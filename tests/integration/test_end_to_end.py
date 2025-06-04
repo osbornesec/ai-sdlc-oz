@@ -153,25 +153,34 @@ SQLAlchemy for database, and Redis for caching.
         # Complete first feature
         (feature_one_dir / "01-prd-feature-one.md").write_text("PRD content")
         cli_runner("aisdlc next")
-        
+
         # Switch back to feature one to complete it
         # (Note: The lock now tracks feature-two, so we simulate switching back)
         # Create all required files and set to final step
-        for step in ["00-idea", "01-prd", "02-prd-plus", "03-system-template", 
-                     "04-systems-patterns", "05-tasks", "06-tasks-plus", "07-tests"]:
+        for step in [
+            "00-idea",
+            "01-prd",
+            "02-prd-plus",
+            "03-system-template",
+            "04-systems-patterns",
+            "05-tasks",
+            "06-tasks-plus",
+            "07-tests",
+        ]:
             step_file = feature_one_dir / f"{step}-feature-one.md"
             if not step_file.exists():
                 step_file.write_text(f"# {step} content")
-        
+
         lock_file = temp_project_dir / ".aisdlc.lock"
         lock_data = {
             "slug": "feature-one",
             "current": "07-tests",  # Set to last step to allow done
-            "created": "2023-01-01T00:00:00"
+            "created": "2023-01-01T00:00:00",
         }
         import json
+
         lock_file.write_text(json.dumps(lock_data))
-        
+
         result = cli_runner("aisdlc done")
         assert result.returncode == 0
 
@@ -261,10 +270,7 @@ timeout_seconds = 60
 
         result = cli_runner(f'aisdlc new "{invalid_title}"')
         assert result.returncode == 1
-        assert (
-            "❌  Error:" in result.stdout
-            or "❌  Error:" in result.stderr
-        )
+        assert "❌  Error:" in result.stdout or "❌  Error:" in result.stderr
 
     def test_unicode_handling(self, cli_runner, temp_project_dir: Path):
         """Test handling of unicode in feature names."""
