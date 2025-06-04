@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import os
-import openai
-import anthropic # For Anthropic Claude
+from typing import Optional
 from ..types import AiProviderConfig
 
 # Define custom exceptions for the AI service
@@ -51,10 +50,18 @@ def generate_text_openai(
 ) -> str:
     """Generates text using the OpenAI API."""
     try:
-        # Ensure you have the 'openai' library installed and properly configured.
-        # Replace with actual client initialization if needed, e.g., openai.OpenAI(api_key=api_key)
-        # For newer versions of openai library, client initialization is required.
-        # This is a simplified example.
+        # Import openai only when needed to handle optional dependency
+        import openai
+    except ImportError as e:
+        raise AiServiceError(
+            "OpenAI library is not installed. Please install it with: pip install openai"
+        ) from e
+    
+    # Validate timeout
+    if timeout_seconds <= 0:
+        raise AiServiceError("timeout_seconds must be a positive integer")
+    
+    try:
         client = openai.OpenAI(api_key=api_key)
 
         response = client.chat.completions.create(
@@ -69,7 +76,7 @@ def generate_text_openai(
         if content is None:
             raise OpenAIError("OpenAI API returned an empty message content.")
         return content
-    except openai.APIAuthenticationError as e:
+    except openai.AuthenticationError as e:
         raise OpenAIError(f"OpenAI API Authentication Error: {e}. Check your API key.")
     except openai.APITimeoutError as e:
         raise OpenAIError(f"OpenAI API Timeout Error: {e}. Try increasing timeout_seconds.")
@@ -87,15 +94,28 @@ def generate_text_anthropic(
     prompt: str,
     model: str,
     api_key: str,
-    timeout_seconds: int
+    timeout_seconds: int,
+    max_tokens: Optional[int] = None
 ) -> str:
     """Generates text using the Anthropic API."""
+    try:
+        # Import anthropic only when needed to handle optional dependency
+        import anthropic
+    except ImportError as e:
+        raise AiServiceError(
+            "Anthropic library is not installed. Please install it with: pip install anthropic"
+        ) from e
+    
+    # Validate timeout
+    if timeout_seconds <= 0:
+        raise AiServiceError("timeout_seconds must be a positive integer")
+    
     try:
         client = anthropic.Anthropic(api_key=api_key, timeout=float(timeout_seconds)) # timeout expects float
 
         response = client.messages.create(
             model=model,
-            max_tokens=4096,  # Consider making this configurable later
+            max_tokens=max_tokens or 4096,  # Use provided max_tokens or default to 4096
             messages=[
                 {"role": "user", "content": prompt}
             ]
@@ -110,7 +130,7 @@ def generate_text_anthropic(
         if content is None: # Should be caught by the above, but as a safeguard
             raise AnthropicError("Anthropic API returned empty message content.")
         return content
-    except anthropic.APIAuthenticationError as e:
+    except anthropic.AuthenticationError as e:
         raise AnthropicError(f"Anthropic API Authentication Error: {e}. Check your API key.")
     except anthropic.APITimeoutError as e:
         raise AnthropicError(f"Anthropic API Timeout Error: {e}. Try increasing timeout_seconds.")
@@ -120,8 +140,6 @@ def generate_text_anthropic(
         raise AnthropicError(f"Anthropic API Rate Limit Error: {e}. Please check your usage and limits.")
     except anthropic.APIStatusError as e: # General status error
         raise AnthropicError(f"Anthropic API Error (Status {e.status_code}): {e.response}")
-    except anthropic.APIError as e: # Base error for other Anthropic issues
-        raise AnthropicError(f"An Anthropic API error occurred: {e}")
     except Exception as e: # Catch any other unexpected errors
         raise AnthropicError(f"An unexpected error occurred with Anthropic: {e}")
 
@@ -148,6 +166,7 @@ def generate_text(
     provider_name = provider_config.get("name", "manual")
     model = provider_config.get("model")
     timeout = provider_config.get("timeout_seconds", 60)
+    max_tokens = provider_config.get("max_tokens")  # Optional for Anthropic
 
     if provider_name == "manual":
         # This case should ideally be handled by the caller,
@@ -162,7 +181,7 @@ def generate_text(
     if provider_name == "openai":
         return generate_text_openai(prompt, model, api_key, timeout)
     elif provider_name == "anthropic":
-        return generate_text_anthropic(prompt, model, api_key, timeout)
+        return generate_text_anthropic(prompt, model, api_key, timeout, max_tokens)
     else:
         raise UnsupportedProviderError(
             f"Unsupported AI provider: {provider_name}. Supported providers are: 'openai', 'anthropic', 'manual'."

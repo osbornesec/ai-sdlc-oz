@@ -27,6 +27,7 @@ class AiProviderConfig(TypedDict, total=False):
     api_key_env_var: str
     direct_api_calls: bool
     timeout_seconds: int
+    max_tokens: int
 
 
 class LockDict(TypedDict, total=False):
