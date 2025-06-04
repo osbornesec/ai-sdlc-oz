@@ -6,6 +6,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from ai_sdlc.services.ai_service import (
+    AiServiceError,
+    ApiKeyMissingError,
+    OpenAIError,
+    UnsupportedProviderError,
+    generate_text,
+)
 from ai_sdlc.services.context7_service import Context7Service
 from ai_sdlc.types import ConfigDict, LockDict
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
@@ -219,10 +226,68 @@ def run_next(args: list[str] | None = None) -> None:
     )
     merged_prompt = _apply_context7_enrichment(context7_config, merged_prompt)
 
-    # Write prompt and display instructions
-    _write_prompt_and_show_instructions(
-        prompt_output_file, merged_prompt, next_step, next_file
-    )
+    ai_provider_config = conf.get("ai_provider")
+    perform_api_call = False  # Flag to determine if API call should be attempted
 
-    # Check and handle existing next step file
+    if ai_provider_config:
+        direct_api_calls_enabled = ai_provider_config.get("direct_api_calls", False)
+        provider_name = ai_provider_config.get("name", "manual")
+        if direct_api_calls_enabled and provider_name != "manual":
+            perform_api_call = True
+
+    if (
+        perform_api_call and ai_provider_config
+    ):  # ai_provider_config should exist if perform_api_call is True
+        print(
+            f"🤖 Attempting to generate text using AI provider: {ai_provider_config.get('name')}..."
+        )
+        try:
+            generated_content = generate_text(merged_prompt, ai_provider_config)
+            next_file.write_text(generated_content)
+            print(f"✅ AI successfully generated content and saved to: {next_file}")
+            # Successfully generated, so we can skip writing the prompt file for manual use
+            if prompt_output_file.exists():  # Clean up _prompt- file if it was somehow created before or in a previous failed run
+                prompt_output_file.unlink()
+
+        except ApiKeyMissingError as e:
+            print(f"❌ API Key Missing Error: {e}")
+            print("   Falling back to manual prompt generation.")
+            _write_prompt_and_show_instructions(
+                prompt_output_file, merged_prompt, next_step, next_file
+            )
+        except UnsupportedProviderError as e:
+            print(f"❌ Unsupported Provider Error: {e}")
+            print("   Falling back to manual prompt generation.")
+            _write_prompt_and_show_instructions(
+                prompt_output_file, merged_prompt, next_step, next_file
+            )
+        except OpenAIError as e:  # Specific OpenAI errors
+            print(f"❌ OpenAI API Error: {e}")
+            print("   Falling back to manual prompt generation.")
+            _write_prompt_and_show_instructions(
+                prompt_output_file, merged_prompt, next_step, next_file
+            )
+        except AiServiceError as e:  # Catch-all for other AiService errors
+            print(f"❌ AI Service Error: {e}")
+            print("   Falling back to manual prompt generation.")
+            _write_prompt_and_show_instructions(
+                prompt_output_file, merged_prompt, next_step, next_file
+            )
+        except Exception as e:  # Catch unexpected errors during API call
+            print(f"❌ An unexpected error occurred during AI text generation: {e}")
+            print("   Falling back to manual prompt generation.")
+            _write_prompt_and_show_instructions(
+                prompt_output_file, merged_prompt, next_step, next_file
+            )
+    else:
+        if ai_provider_config and ai_provider_config.get("name") != "manual":
+            print(
+                "ℹ️  Direct API calls are disabled or provider is not configured for direct calls."
+            )
+        # Write prompt and display instructions for manual processing
+        _write_prompt_and_show_instructions(
+            prompt_output_file, merged_prompt, next_step, next_file
+        )
+
+    # Check and handle existing next step file (always do this)
     _handle_next_step_file(next_file, next_step, lock, prompt_output_file)

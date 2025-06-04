@@ -21,19 +21,19 @@ def run_done(args: list[str] | None = None) -> None:
     lock: LockDict = read_lock()
     if not lock:
         print("❌  No active workstream.")
-        return
+        sys.exit(1)
     if "slug" not in lock or "current" not in lock:
         print("❌  Invalid lock file. Run 'aisdlc status' to regenerate.")
-        return
+        sys.exit(1)
     slug = lock["slug"]
     if lock["current"] != steps[-1]:
         print("❌  Workstream not finished yet. Complete all steps before archiving.")
-        return
+        sys.exit(1)
     workdir = ROOT / conf["active_dir"] / slug
     missing = [s for s in steps if not (workdir / f"{s}-{slug}.md").exists()]
     if missing:
         print("❌  Missing files:", ", ".join(missing))
-        return
+        sys.exit(1)
     dest = ROOT / conf["done_dir"] / slug
     try:
         shutil.move(str(workdir), dest)

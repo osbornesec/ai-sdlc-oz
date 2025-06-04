@@ -75,12 +75,65 @@ def validate_config(config_data: dict[str, Any]) -> ConfigDict:
     # Validate context7 config if present
     if "context7" in config_data:
         context7_config = config_data["context7"]
-        if not isinstance(context7_config, dict):
-            errors.append("'context7' must be a dictionary")
+        if (
+            context7_config is not None
+        ):  # Ensure context7_config is not None before validation
+            if not isinstance(context7_config, dict):
+                errors.append("'context7' must be a dictionary")
+            else:
+                if "enabled" in context7_config:
+                    if not isinstance(context7_config["enabled"], bool):
+                        errors.append("'context7.enabled' must be a boolean")
+
+    # Validate ai_provider config
+    if "ai_provider" in config_data:
+        ai_provider_config = config_data["ai_provider"]
+        if not isinstance(ai_provider_config, dict):
+            errors.append("'ai_provider' must be a dictionary")
         else:
-            if "enabled" in context7_config:
-                if not isinstance(context7_config["enabled"], bool):
-                    errors.append("'context7.enabled' must be a boolean")
+            # Validate 'name'
+            if "name" in ai_provider_config and not isinstance(
+                ai_provider_config["name"], str
+            ):
+                errors.append("'ai_provider.name' must be a string")
+
+            # Validate 'model'
+            if "model" in ai_provider_config and not isinstance(
+                ai_provider_config["model"], str
+            ):
+                errors.append("'ai_provider.model' must be a string")
+
+            # Validate 'api_key_env_var'
+            if "api_key_env_var" in ai_provider_config and not isinstance(
+                ai_provider_config["api_key_env_var"], str
+            ):
+                errors.append("'ai_provider.api_key_env_var' must be a string")
+
+            # Validate 'direct_api_calls'
+            # This field is required if ai_provider section exists, defaults to False if section is missing (handled by get_default_config)
+            # For newly created configs, get_default_config will set it.
+            # For existing configs, if 'ai_provider' exists, 'direct_api_calls' should ideally be there.
+            # However, to be lenient with potentially manually edited files that might miss this,
+            # we can check its type if present, or rely on a default if truly absent inside an existing ai_provider dict.
+            # The TypedDict with total=False allows it to be missing.
+            # The prompt says "direct_api_calls (bool) is required if the section exists".
+            # This implies if config_data has "ai_provider", then "direct_api_calls" must be in ai_provider_config.
+            if "direct_api_calls" not in ai_provider_config:
+                errors.append("'ai_provider.direct_api_calls' is required")
+            elif not isinstance(ai_provider_config["direct_api_calls"], bool):
+                errors.append("'ai_provider.direct_api_calls' must be a boolean")
+
+            # Validate 'timeout_seconds'
+            if "timeout_seconds" in ai_provider_config:
+                timeout = ai_provider_config["timeout_seconds"]
+                if not isinstance(timeout, int):
+                    errors.append("'ai_provider.timeout_seconds' must be an integer")
+                elif timeout <= 0:
+                    errors.append(
+                        "'ai_provider.timeout_seconds' must be a positive integer"
+                    )
+            # If timeout_seconds is not present, it will use the default from get_default_config or TypedDict default (if specified)
+            # The requirement says "optional, defaults to 60". This default is handled by get_default_config.
 
     if errors:
         raise ConfigValidationError("; ".join(errors))
@@ -132,4 +185,11 @@ def get_default_config() -> ConfigDict:
         "done_dir": "done",
         "prompt_dir": "prompts",
         "context7": {"enabled": True},
+        "ai_provider": {
+            "name": "manual",
+            "model": "",
+            "api_key_env_var": "",
+            "direct_api_calls": False,
+            "timeout_seconds": 60,
+        },
     }

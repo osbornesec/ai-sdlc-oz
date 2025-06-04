@@ -1,213 +1,768 @@
-"""Unit tests for the next command."""
+# tests/unit/test_next_command.py
 
+import os
+import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from ai_sdlc.commands import next as next_cmd
+from ai_sdlc.commands.next import run_next
+from ai_sdlc.services.ai_service import (
+    AiServiceError,
+    ApiKeyMissingError,
+    OpenAIError,
+    UnsupportedProviderError,
+)
+from ai_sdlc.types import AiProviderConfig, ConfigDict, LockDict
+
+# Default values for fixtures
+DEFAULT_SLUG = "test-project"
+DEFAULT_STEPS = ["00-setup", "01-design", "02-impl"]
+DEFAULT_CURRENT_STEP = "00-setup"
+DEFAULT_NEXT_STEP = "01-design"
+
+PROMPT_TEMPLATE_CONTENT = (
+    "Prompt for <prev_step></prev_step> to generate " + DEFAULT_NEXT_STEP
+)
+PREV_STEP_CONTENT = "Content from previous step: " + DEFAULT_CURRENT_STEP
+PLACEHOLDER = "<prev_step></prev_step>"
 
 
-class TestNextCommand:
-    """Test cases for next command functionality."""
+@pytest.fixture
+def mock_config_base() -> ConfigDict:
+    return {
+        "version": "0.7.0",
+        "steps": DEFAULT_STEPS,
+        "active_dir": "active",
+        "done_dir": "done",
+        "prompt_dir": "prompts",
+        "context7": {"enabled": False},  # Disable context7 by default for these tests
+        # ai_provider will be added by other fixtures
+    }  # type: ignore
 
-    def test_validate_required_files_missing_prev_file(
-        self, temp_project_dir: Path, capsys
+
+@pytest.fixture
+def mock_ai_provider_openai_direct() -> AiProviderConfig:
+    return {
+        "name": "openai",
+        "model": "gpt-3.5-turbo",
+        "api_key_env_var": "OPENAI_API_KEY_TEST_NEXT",  # Use a distinct env var for clarity
+        "direct_api_calls": True,
+        "timeout_seconds": 60,
+    }
+
+
+@pytest.fixture
+def mock_ai_provider_openai_direct_no_key(
+    mock_ai_provider_openai_direct: AiProviderConfig,
+) -> AiProviderConfig:
+    config = mock_ai_provider_openai_direct.copy()
+    # To simulate ApiKeyMissingError due to env var not set, we rely on os.environ manipulation
+    # or ensure the specific env var for this config is not set.
+    # For ApiKeyMissingError due to config, we'd change "api_key_env_var".
+    return config
+
+
+@pytest.fixture
+def mock_ai_provider_manual() -> AiProviderConfig:
+    return {
+        "name": "manual",
+        "model": "",
+        "api_key_env_var": "",
+        "direct_api_calls": False,  # Can be True or False, 'manual' name takes precedence
+        "timeout_seconds": 60,
+    }
+
+
+@pytest.fixture
+def mock_ai_provider_direct_disabled(
+    mock_ai_provider_openai_direct: AiProviderConfig,
+) -> AiProviderConfig:
+    config = mock_ai_provider_openai_direct.copy()
+    config["direct_api_calls"] = False
+    return config
+
+
+# Fixture to combine base config with different AI provider configs
+@pytest.fixture
+def mock_config(mock_config_base: ConfigDict, request) -> ConfigDict:
+    # request.param will be the fixture name as string
+    # Default to manual if no param is passed
+    if hasattr(request, "param"):
+        ai_provider_conf = request.getfixturevalue(request.param)
+    else:
+        ai_provider_conf = request.getfixturevalue("mock_ai_provider_manual")
+    full_config = mock_config_base.copy()
+    full_config["ai_provider"] = ai_provider_conf
+    return full_config
+
+
+@pytest.fixture
+def mock_lock() -> LockDict:
+    # Return a fresh copy each time to prevent test contamination
+    return {
+        "slug": DEFAULT_SLUG,
+        "current": DEFAULT_CURRENT_STEP,  # This is "00-setup"
+        "created": "2023-01-01T12:00:00Z",
+    }
+
+
+# This fixture will create actual files in tmp_path for more robust testing
+@pytest.fixture
+def setup_working_directory(
+    tmp_path: Path, mock_config: ConfigDict, mock_lock: LockDict
+):
+    # Create directories
+    (tmp_path / mock_config["active_dir"] / mock_lock["slug"]).mkdir(
+        parents=True, exist_ok=True
+    )
+    (tmp_path / mock_config["prompt_dir"]).mkdir(parents=True, exist_ok=True)
+
+    # Create previous step file
+    prev_file_path = (
+        tmp_path
+        / mock_config["active_dir"]
+        / mock_lock["slug"]
+        / f"{DEFAULT_CURRENT_STEP}-{mock_lock['slug']}.md"
+    )
+    prev_file_path.write_text(PREV_STEP_CONTENT)
+
+    # Create prompt template file
+    prompt_template_path = (
+        tmp_path / mock_config["prompt_dir"] / f"{DEFAULT_NEXT_STEP}.prompt.yml"
+    )
+    prompt_template_path.write_text(PROMPT_TEMPLATE_CONTENT)
+
+    return tmp_path  # Return root tmp_path, specific paths can be derived in tests
+
+
+# Mocks for external dependencies of run_next
+@pytest.fixture(autouse=True)  # Applied to all tests in this file
+def auto_mock_dependencies(request):  # `request` allows conditional mocking if needed
+    # Basic mocks, can be overridden per test using @patch if specific behavior is needed
+
+    # Mock file system interactions that are not covered by tmp_path setup
+    # For example, if Path.exists() is called on a non-tmp_path file, or if we want to simulate non-existence easily.
+    # However, for files managed by setup_working_directory, their existence is real.
+
+    mock_load_conf = patch("ai_sdlc.commands.next.load_config").start()
+    # We'll set mock_load_conf.return_value in tests that use mock_config fixture
+
+    mock_rlock = patch("ai_sdlc.commands.next.read_lock").start()
+    # We'll set mock_rlock.return_value in tests that use mock_lock fixture
+
+    mock_wlock = patch("ai_sdlc.commands.next.write_lock").start()
+
+    # Mock context7 enrichment to return prompt as is, simplifying tests
+    mock_context7 = patch(
+        "ai_sdlc.commands.next._apply_context7_enrichment",
+        side_effect=lambda conf, prompt, *args: prompt,
+    ).start()
+
+    # Mock the AI service's generate_text function within the next.py module
+    mock_gen_text = patch("ai_sdlc.commands.next.generate_text").start()
+
+    # Mock ROOT to point to tmp_path for consistency if any code uses utils.ROOT directly
+    # This assumes setup_working_directory is used, which provides tmp_path
+    # Note: This might be tricky if utils.ROOT is used at module import time elsewhere.
+    # For next.py, it seems ROOT is used to construct paths relative to the project root.
+    # If tests use tmp_path correctly, direct mocking of ROOT might not be strictly needed
+    # for `next` command's own operations if all paths are derived from config + slug.
+    # Let's assume for now that path constructions in `next.py` are relative to `tmp_path`
+    # when `active_dir` and `prompt_dir` are used from config.
+    # If `ai_sdlc.utils.ROOT` is used by `next.py` to prefix these, then it needs mocking.
+    # `_prepare_file_paths` uses `ROOT / conf["active_dir"]` and `ROOT / conf["prompt_dir"]`.
+    # So, utils.ROOT needs to be tmp_path.
+
+    # Important: ai_sdlc.commands.next imports ROOT at module level, so we need to patch it there too
+    # We'll use patch.object later to set these to actual Path objects
+    # For now, just create the patches but don't start them
+    mock_root_util = None
+    mock_root_next = None
+    # No, `auto_mock_dependencies` runs before `setup_working_directory` can set it.
+    # This needs careful handling. It's better if `run_next` gets `ROOT` via dependency injection or
+    # if tests ensure `utils.ROOT` is patched *before* `run_next` is called.
+    # The `start()` method returns the MagicMock instance.
+
+    yield {  # Provide mocks to tests if they need to inspect/modify them
+        "load_config": mock_load_conf,
+        "read_lock": mock_rlock,
+        "write_lock": mock_wlock,
+        "apply_context7": mock_context7,
+        "generate_text": mock_gen_text,
+        "utils_ROOT": mock_root_util,
+        "next_ROOT": mock_root_next,
+    }
+
+    patch.stopall()  # Stop all patches started with start()
+
+
+# Helper to run tests with properly patched ROOT
+def run_test_with_patched_root(
+    root_path, auto_mock_dependencies, mock_config, mock_lock, test_func
+):
+    """Helper to run tests with ROOT properly patched to the actual path."""
+    with (
+        patch("ai_sdlc.utils.ROOT", root_path),
+        patch("ai_sdlc.commands.next.ROOT", root_path),
     ):
-        """Test validation when previous step file is missing."""
-        prev_file = temp_project_dir / "missing.md"
-        prompt_file = temp_project_dir / "prompt.yml"
-        prompt_file.write_text("content")
+        auto_mock_dependencies["load_config"].return_value = mock_config
+        auto_mock_dependencies["read_lock"].return_value = mock_lock
+        test_func()
 
-        with pytest.raises(SystemExit) as exc_info:
-            next_cmd._validate_required_files(
-                prev_file, prompt_file, "00-idea", "01-prd", {}
-            )
-        assert exc_info.value.code == 1
 
-        captured = capsys.readouterr()
-        assert "previous step's output file" in captured.out
-        assert "missing.md" in captured.out
+# Test Scenarios for run_next()
 
-    def test_validate_required_files_missing_prompt_file(
-        self, temp_project_dir: Path, capsys
+
+@pytest.mark.parametrize(
+    "mock_config",
+    ["mock_ai_provider_openai_direct"],
+    indirect=True,
+)
+def test_run_next_direct_api_call_success(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+
+    with (
+        patch("ai_sdlc.utils.ROOT", root_path),
+        patch("ai_sdlc.commands.next.ROOT", root_path),
     ):
-        """Test validation when prompt file is missing."""
-        prev_file = temp_project_dir / "prev.md"
-        prev_file.write_text("content")
-        prompt_file = temp_project_dir / "missing-prompt.yml"
+        auto_mock_dependencies["load_config"].return_value = mock_config
+        auto_mock_dependencies["read_lock"].return_value = mock_lock
 
-        with pytest.raises(SystemExit) as exc_info:
-            next_cmd._validate_required_files(
-                prev_file, prompt_file, "00-idea", "01-prd", {"prompt_dir": "prompts"}
-            )
-        assert exc_info.value.code == 1
+        mock_generate_text_func = auto_mock_dependencies["generate_text"]
+        mock_generate_text_func.return_value = "AI generated content successfully."
 
-        captured = capsys.readouterr()
-        assert "Prompt template file" in captured.out
-        assert "missing-prompt.yml" in captured.out
-
-    def test_read_and_merge_content(self, temp_project_dir: Path, capsys):
-        """Test reading and merging content."""
-        prev_file = temp_project_dir / "prev.md"
-        prev_file.write_text("Previous content")
-
-        prompt_file = temp_project_dir / "prompt.yml"
-        prompt_file.write_text("Before <prev_step></prev_step> After")
-
-        result = next_cmd._read_and_merge_content(prev_file, prompt_file)
-        assert result == "Before Previous content After"
+        # Set OPENAI_API_KEY_TEST_NEXT for this test environment
+        with patch.dict(
+            os.environ,
+            {mock_config["ai_provider"]["api_key_env_var"]: "fake_key_for_test"},
+        ):
+            run_next()
 
         captured = capsys.readouterr()
-        assert "Reading previous step from" in captured.out
-        assert "Reading prompt template from" in captured.out
-
-    def test_apply_context7_enrichment_disabled(self):
-        """Test Context7 enrichment when disabled."""
-        conf = {"context7": {"enabled": False}}
-        prompt = "Test prompt"
-
-        result = next_cmd._apply_context7_enrichment(
-            conf, prompt, Path("."), ["00-idea"], 0, "test", "01-prd"
+        assert (
+            "🤖 Attempting to generate text using AI provider: openai..."
+            in captured.out
         )
-        assert result == prompt
+        assert "✅ AI successfully generated content and saved to:" in captured.out
 
-    def test_apply_context7_enrichment_enabled(self, temp_project_dir: Path, capsys):
-        """Test Context7 enrichment when enabled."""
-        conf = {"context7": {"enabled": True}}
-        prompt = "Test prompt"
+        next_step_file = (
+            root_path
+            / mock_config["active_dir"]
+            / mock_lock["slug"]
+            / f"{DEFAULT_NEXT_STEP}-{mock_lock['slug']}.md"
+        )
+        assert next_step_file.exists()
+        assert next_step_file.read_text() == "AI generated content successfully."
 
-        mock_service = MagicMock()
-        mock_service.enrich_prompt.return_value = "Enriched prompt"
+        prompt_output_file = (
+            root_path
+            / mock_config["active_dir"]
+            / mock_lock["slug"]
+            / f"_prompt-{DEFAULT_NEXT_STEP}.md"
+        )
+        assert not prompt_output_file.exists()  # Should be cleaned up or not created
 
-        with patch("ai_sdlc.commands.next.Context7Service", return_value=mock_service):
-            result = next_cmd._apply_context7_enrichment(
-                conf, prompt, temp_project_dir, ["00-idea"], 0, "test", "01-prd"
-            )
+        auto_mock_dependencies["write_lock"].assert_called_once_with(
+            {
+                "slug": mock_lock["slug"],
+                "current": DEFAULT_NEXT_STEP,
+                "created": mock_lock["created"],
+            }
+        )
+        # Ensure context7 was called (even if it does nothing)
+        auto_mock_dependencies["apply_context7"].assert_called_once()
 
-        assert result == "Enriched prompt"
-        mock_service.enrich_prompt.assert_called_once()
+
+@pytest.mark.parametrize(
+    "mock_config",
+    ["mock_ai_provider_openai_direct"],
+    indirect=True,
+)
+@pytest.mark.parametrize(
+    "error_to_raise, error_name_in_output",
+    [
+        (ApiKeyMissingError("Test API Key Missing"), "API Key Missing Error"),
+        (
+            UnsupportedProviderError("Test Unsupported Provider"),
+            "Unsupported Provider Error",
+        ),
+        (OpenAIError("Test OpenAI Error"), "OpenAI API Error"),
+        (AiServiceError("Test Generic AI Service Error"), "AI Service Error"),
+        (
+            Exception("Test Unexpected Error during API call"),
+            "An unexpected error occurred",
+        ),
+    ],
+)
+def test_run_next_direct_api_call_errors_fallback_to_manual(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+    error_to_raise: Exception,
+    error_name_in_output: str,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+    auto_mock_dependencies["load_config"].return_value = mock_config
+    auto_mock_dependencies["read_lock"].return_value = mock_lock
+
+    mock_generate_text_func = auto_mock_dependencies["generate_text"]
+    mock_generate_text_func.side_effect = error_to_raise
+
+    # For ApiKeyMissingError, ensure the env var is set if the error is NOT about the env var itself
+    # If error_to_raise is ApiKeyMissingError and is about config, key should be set.
+    # If it's about env var, key should NOT be set.
+    # The test for ApiKeyMissingError here is generic; specific get_api_key tests are in test_ai_service.
+    # Here, we assume generate_text raises it, implying get_api_key might have, or other logic.
+    # Let's ensure the key is present for non-ApiKeyMissingError cases to avoid that being the cause.
+    env_var_name = mock_config["ai_provider"]["api_key_env_var"]
+    with patch.dict(
+        os.environ,
+        {env_var_name: "fake_key_for_test"}
+        if not isinstance(error_to_raise, ApiKeyMissingError)
+        else {},
+    ):
+        # If it IS ApiKeyMissingError, we want it to be due to the mocked side_effect, not actual missing key.
+        # So, if the side_effect is ApiKeyMissingError, the key *could* be present or not,
+        # as the mock overrides the actual get_api_key call path within generate_text.
+        # For this test, we're testing generate_text's behavior *when it raises*, so env var state is secondary
+        # to the mock's side_effect.
+        run_next()
+
+    captured = capsys.readouterr()
+    assert "🤖 Attempting to generate text using AI provider: openai..." in captured.out
+    assert f"❌ {error_name_in_output}: {error_to_raise}" in captured.out
+    assert "Falling back to manual prompt generation." in captured.out
+    assert "📝  Generated AI prompt file:" in captured.out  # Manual instructions shown
+
+    next_step_file = (
+        root_path
+        / mock_config["active_dir"]
+        / mock_lock["slug"]
+        / f"{DEFAULT_NEXT_STEP}-{mock_lock['slug']}.md"
+    )
+    assert not next_step_file.exists()  # AI content not written
+
+    prompt_output_file = (
+        root_path
+        / mock_config["active_dir"]
+        / mock_lock["slug"]
+        / f"_prompt-{DEFAULT_NEXT_STEP}.md"
+    )
+    assert prompt_output_file.exists()  # Manual prompt file IS created
+    expected_prompt_content = PROMPT_TEMPLATE_CONTENT.replace(
+        PLACEHOLDER, PREV_STEP_CONTENT
+    )
+    assert prompt_output_file.read_text() == expected_prompt_content
+
+    # Lock state should NOT advance because next_file is not created
+    auto_mock_dependencies["write_lock"].assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "mock_config",
+    ["mock_ai_provider_direct_disabled"],
+    indirect=True,
+)
+def test_run_next_direct_api_calls_disabled(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+    auto_mock_dependencies["load_config"].return_value = mock_config
+    auto_mock_dependencies["read_lock"].return_value = mock_lock
+
+    mock_generate_text_func = auto_mock_dependencies["generate_text"]
+
+    run_next()
+
+    captured = capsys.readouterr()
+    assert (
+        "ℹ️  Direct API calls are disabled or provider is not configured for direct calls."
+        in captured.out
+    )
+    assert "📝  Generated AI prompt file:" in captured.out
+
+    mock_generate_text_func.assert_not_called()  # Crucial check
+
+    prompt_output_file = (
+        root_path
+        / mock_config["active_dir"]
+        / mock_lock["slug"]
+        / f"_prompt-{DEFAULT_NEXT_STEP}.md"
+    )
+    assert prompt_output_file.exists()
+    expected_prompt_content = PROMPT_TEMPLATE_CONTENT.replace(
+        PLACEHOLDER, PREV_STEP_CONTENT
+    )
+    assert prompt_output_file.read_text() == expected_prompt_content
+
+    auto_mock_dependencies["write_lock"].assert_not_called()  # No advance
+
+
+@pytest.mark.parametrize("mock_config", ["mock_ai_provider_manual"], indirect=True)
+def test_run_next_manual_provider(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+
+    # Patch ROOT to be the actual path instead of using return_value
+    with (
+        patch("ai_sdlc.utils.ROOT", root_path),
+        patch("ai_sdlc.commands.next.ROOT", root_path),
+    ):
+        auto_mock_dependencies["load_config"].return_value = mock_config
+
+        auto_mock_dependencies["read_lock"].return_value = mock_lock
+
+        mock_generate_text_func = auto_mock_dependencies["generate_text"]
+
+        run_next()
 
         captured = capsys.readouterr()
-        assert "Enriching prompt with Context7 documentation" in captured.out
+        # No specific message for "manual mode selected", just straight to prompt generation
+        assert "📝  Generated AI prompt file:" in captured.out
 
-    def test_handle_next_step_file_exists(self, temp_project_dir: Path, capsys):
-        """Test handling when next step file already exists."""
-        next_file = temp_project_dir / "next.md"
-        next_file.write_text("content")
-        prompt_file = temp_project_dir / "prompt.md"
-        prompt_file.write_text("prompt")
+        mock_generate_text_func.assert_not_called()
 
-        lock = {"current": "00-idea"}
+        prompt_output_file = (
+            root_path
+            / mock_config["active_dir"]
+            / mock_lock["slug"]
+            / f"_prompt-{DEFAULT_NEXT_STEP}.md"
+        )
+        assert prompt_output_file.exists()
+        expected_prompt_content = PROMPT_TEMPLATE_CONTENT.replace(
+            PLACEHOLDER, PREV_STEP_CONTENT
+        )
+        assert prompt_output_file.read_text() == expected_prompt_content
 
-        with patch("ai_sdlc.commands.next.write_lock") as mock_write_lock:
-            next_cmd._handle_next_step_file(next_file, "01-prd", lock, prompt_file)
+        auto_mock_dependencies["write_lock"].assert_not_called()
 
-            # Verify lock was updated
-            assert lock["current"] == "01-prd"
-            mock_write_lock.assert_called_once_with(lock)
 
-        # Verify prompt file was cleaned up
-        assert not prompt_file.exists()
+@pytest.mark.parametrize(
+    "mock_config", ["mock_ai_provider_manual"], indirect=True
+)  # Config doesn't matter much here
+def test_run_next_step_file_already_exists(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+    auto_mock_dependencies["load_config"].return_value = mock_config
+    auto_mock_dependencies["read_lock"].return_value = mock_lock
 
-        captured = capsys.readouterr()
-        assert "Found existing file" in captured.out
-        assert "Advanced to step: 01-prd" in captured.out
-        assert "Cleaned up prompt file" in captured.out
+    mock_generate_text_func = auto_mock_dependencies["generate_text"]
 
-    def test_handle_next_step_file_not_exists(self, temp_project_dir: Path, capsys):
-        """Test handling when next step file doesn't exist."""
-        next_file = temp_project_dir / "next.md"
-        prompt_file = temp_project_dir / "prompt.md"
-        lock = {"current": "00-idea"}
+    # Pre-create the next_step_file
+    next_step_file_path = (
+        root_path
+        / mock_config["active_dir"]
+        / mock_lock["slug"]
+        / f"{DEFAULT_NEXT_STEP}-{mock_lock['slug']}.md"
+    )
+    next_step_file_path.write_text("Already existing content.")
 
-        next_cmd._handle_next_step_file(next_file, "01-prd", lock, prompt_file)
+    # Also create the _prompt file, to check if it gets cleaned up
+    prompt_output_file = (
+        root_path
+        / mock_config["active_dir"]
+        / mock_lock["slug"]
+        / f"_prompt-{DEFAULT_NEXT_STEP}.md"
+    )
+    prompt_output_file.write_text("Temporary prompt content.")
 
-        captured = capsys.readouterr()
-        assert "Waiting for you to create" in captured.out
-        assert str(next_file) in captured.out
+    run_next()
 
-    def test_validate_workflow_state_no_lock(self, capsys):
-        """Test workflow validation with no lock."""
-        with pytest.raises(SystemExit) as exc_info:
-            next_cmd._validate_workflow_state({}, {})
-        assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    # Should not attempt API call or write prompt if file exists
+    assert "Attempting to generate text" not in captured.out
+    assert (
+        "Generated AI prompt file" not in captured.out
+    )  # The _write_prompt_and_show_instructions is skipped
 
-        captured = capsys.readouterr()
-        assert "No active workstream" in captured.out
+    assert "✅  Found existing file:" in captured.out
+    assert "✅  Advanced to step: " + DEFAULT_NEXT_STEP in captured.out
+    assert (
+        "🧹  Cleaned up prompt file:" in captured.out
+    )  # _prompt file should be cleaned
 
-    def test_validate_workflow_state_all_complete(self, capsys):
-        """Test workflow validation when all steps are complete."""
-        conf = {"steps": ["00-idea", "01-prd"]}
-        lock = {"slug": "test", "current": "01-prd"}
+    mock_generate_text_func.assert_not_called()
 
-        with pytest.raises(SystemExit) as exc_info:
-            next_cmd._validate_workflow_state(conf, lock)
-        assert exc_info.value.code == 0
-
-        captured = capsys.readouterr()
-        assert "All steps complete" in captured.out
-
-    def test_validate_workflow_state_success(self):
-        """Test successful workflow validation."""
-        conf = {"steps": ["00-idea", "01-prd", "02-prd-plus"]}
-        lock = {"slug": "test", "current": "00-idea"}
-
-        slug, idx, steps = next_cmd._validate_workflow_state(conf, lock)
-        assert slug == "test"
-        assert idx == 0
-        assert steps == ["00-idea", "01-prd", "02-prd-plus"]
-
-    def test_prepare_file_paths(self, temp_project_dir: Path):
-        """Test file path preparation."""
-        conf = {"active_dir": "doing", "prompt_dir": "prompts"}
-
-        with patch("ai_sdlc.commands.next.ROOT", temp_project_dir):
-            workdir, prev_file, prompt_file, next_file, prompt_output = (
-                next_cmd._prepare_file_paths(conf, "test-feature", "00-idea", "01-prd")
-            )
-
-        assert workdir == temp_project_dir / "doing" / "test-feature"
-        assert prev_file == workdir / "00-idea-test-feature.md"
-        assert prompt_file == temp_project_dir / "prompts" / "01-prd.prompt.yml"
-        assert next_file == workdir / "01-prd-test-feature.md"
-        assert prompt_output == workdir / "_prompt-01-prd.md"
-
-    def test_run_next_full_flow(self, temp_project_dir: Path, capsys):
-        """Test complete next command flow."""
-        # Setup configuration
-        conf = {
-            "steps": ["00-idea", "01-prd", "02-prd-plus"],
-            "active_dir": "doing",
-            "prompt_dir": "prompts",
-            "context7": {"enabled": False},
+    auto_mock_dependencies["write_lock"].assert_called_once_with(
+        {
+            "slug": mock_lock["slug"],
+            "current": DEFAULT_NEXT_STEP,
+            "created": mock_lock["created"],
         }
-        lock = {"slug": "test-feature", "current": "00-idea"}
+    )
+    assert not prompt_output_file.exists()  # Check it was actually deleted
 
-        # Create necessary directories and files
-        workdir = temp_project_dir / "doing" / "test-feature"
-        workdir.mkdir(parents=True)
 
-        prev_file = workdir / "00-idea-test-feature.md"
-        prev_file.write_text("# Test Feature\n\nThis is the idea.")
+# Test for workflow completion
+@pytest.mark.parametrize("mock_config", ["mock_ai_provider_manual"], indirect=True)
+def test_run_next_all_steps_complete(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+    auto_mock_dependencies["load_config"].return_value = mock_config
 
-        prompt_dir = temp_project_dir / "prompts"
-        prompt_dir.mkdir()
-        prompt_file = prompt_dir / "01-prd.prompt.yml"
-        prompt_file.write_text("Generate PRD for:\n<prev_step></prev_step>")
+    # Create a new lock with the last step
+    completed_lock = {
+        "slug": mock_lock["slug"],
+        "current": DEFAULT_STEPS[-1],  # e.g. "02-impl"
+        "created": mock_lock["created"],
+    }
+    auto_mock_dependencies["read_lock"].return_value = completed_lock
 
-        with patch("ai_sdlc.commands.next.ROOT", temp_project_dir):
-            with patch("ai_sdlc.commands.next.load_config", return_value=conf):
-                with patch("ai_sdlc.commands.next.read_lock", return_value=lock):
-                    next_cmd.run_next()
+    mock_exit = patch.object(sys, "exit").start()
 
-        # Verify prompt output file was created
-        prompt_output = workdir / "_prompt-01-prd.md"
-        assert prompt_output.exists()
-        assert "Generate PRD for:" in prompt_output.read_text()
-        assert "This is the idea" in prompt_output.read_text()
+    run_next()
 
-        captured = capsys.readouterr()
-        assert "Reading previous step" in captured.out
-        assert "Generated AI prompt file" in captured.out
-        assert "run 'aisdlc next' again" in captured.out
+    captured = capsys.readouterr()
+    assert "🎉  All steps complete. Run `aisdlc done` to archive." in captured.out
+    mock_exit.assert_called_once_with(0)
+    auto_mock_dependencies["generate_text"].assert_not_called()
+    auto_mock_dependencies["write_lock"].assert_not_called()
+    patch.stopall()  # Stop sys.exit mock
+
+
+# Test for missing previous step file
+@pytest.mark.parametrize("mock_config", ["mock_ai_provider_manual"], indirect=True)
+def test_run_next_missing_prev_file(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+    auto_mock_dependencies["load_config"].return_value = mock_config
+    auto_mock_dependencies["read_lock"].return_value = mock_lock
+
+    # Delete the previous step file that setup_working_directory created
+    prev_file_path = (
+        root_path
+        / mock_config["active_dir"]
+        / mock_lock["slug"]
+        / f"{DEFAULT_CURRENT_STEP}-{mock_lock['slug']}.md"
+    )
+    if prev_file_path.exists():
+        prev_file_path.unlink()
+
+    mock_exit = patch.object(sys, "exit").start()
+    run_next()
+
+    captured = capsys.readouterr()
+    assert (
+        f"❌ Error: The previous step's output file '{prev_file_path}' is missing."
+        in captured.out
+    )
+    mock_exit.assert_called_once_with(1)
+    patch.stopall()  # Stop sys.exit mock
+
+
+# Test for missing prompt template file
+@pytest.mark.parametrize("mock_config", ["mock_ai_provider_manual"], indirect=True)
+def test_run_next_missing_prompt_template_file(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+    auto_mock_dependencies["load_config"].return_value = mock_config
+    auto_mock_dependencies["read_lock"].return_value = mock_lock
+
+    # Delete the prompt template file that setup_working_directory created
+    prompt_template_path = (
+        root_path / mock_config["prompt_dir"] / f"{DEFAULT_NEXT_STEP}.prompt.yml"
+    )
+    if prompt_template_path.exists():
+        prompt_template_path.unlink()
+
+    mock_exit = patch.object(sys, "exit").start()
+    run_next()
+
+    captured = capsys.readouterr()
+    assert (
+        f"❌ Critical Error: Prompt template file '{prompt_template_path}' is missing."
+        in captured.out
+    )
+    mock_exit.assert_called_once_with(1)
+    patch.stopall()  # Stop sys.exit mock
+
+
+# Test that if ai_provider_config is missing entirely from config, it defaults to manual-like behavior
+@pytest.mark.parametrize(
+    "mock_config", ["mock_ai_provider_manual"], indirect=True
+)  # Start with a base
+def test_run_next_missing_ai_provider_section_in_config(
+    mock_config: ConfigDict,  # This will have ai_provider due to fixture setup
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+
+    # Modify the config to remove ai_provider section
+    config_no_ai_section = mock_config.copy()
+    if "ai_provider" in config_no_ai_section:
+        del config_no_ai_section["ai_provider"]
+
+    auto_mock_dependencies["load_config"].return_value = config_no_ai_section
+    auto_mock_dependencies["read_lock"].return_value = mock_lock
+
+    mock_generate_text_func = auto_mock_dependencies["generate_text"]
+
+    run_next()
+
+    captured = capsys.readouterr()
+    # Should behave like manual mode: no API call attempt, just prompt generation.
+    # No specific error message about missing section, just proceeds to manual.
+    assert "Attempting to generate text" not in captured.out
+    assert (
+        "📝  Generated AI prompt file:" in captured.out
+    )  # Falls back to manual prompt generation
+
+    mock_generate_text_func.assert_not_called()
+
+    prompt_output_file = (
+        root_path
+        / config_no_ai_section["active_dir"]
+        / mock_lock["slug"]
+        / f"_prompt-{DEFAULT_NEXT_STEP}.md"
+    )
+    assert prompt_output_file.exists()
+    expected_prompt_content = PROMPT_TEMPLATE_CONTENT.replace(
+        PLACEHOLDER, PREV_STEP_CONTENT
+    )
+    assert prompt_output_file.read_text() == expected_prompt_content
+
+    auto_mock_dependencies["write_lock"].assert_not_called()
+
+
+# Test for `ai_provider_config.get("name")` being None or missing, expecting default to "manual"
+@pytest.mark.parametrize(
+    "mock_config",
+    ["mock_ai_provider_openai_direct"],
+    indirect=True,
+)
+def test_run_next_ai_provider_name_missing(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+
+    config_provider_name_missing = mock_config.copy()
+    # Ensure ai_provider dict exists but 'name' is missing
+    # Casting to AiProviderConfig for type safety, but then deleting a required key for test
+    provider_details = config_provider_name_missing["ai_provider"].copy()  # type: ignore
+    if "name" in provider_details:
+        del provider_details["name"]
+    config_provider_name_missing["ai_provider"] = provider_details
+
+    auto_mock_dependencies["load_config"].return_value = config_provider_name_missing
+    auto_mock_dependencies["read_lock"].return_value = mock_lock
+
+    mock_generate_text_func = auto_mock_dependencies["generate_text"]
+
+    run_next()  # Should default to manual behavior due to name missing
+
+    captured = capsys.readouterr()
+    assert "📝  Generated AI prompt file:" in captured.out
+    mock_generate_text_func.assert_not_called()  # Because name defaults to 'manual'
+
+
+# Test for `ai_provider_config.get("direct_api_calls")` being missing, expecting default to False
+@pytest.mark.parametrize(
+    "mock_config",
+    ["mock_ai_provider_openai_direct"],
+    indirect=True,
+)
+def test_run_next_ai_provider_direct_api_calls_missing(
+    mock_config: ConfigDict,
+    mock_lock: LockDict,
+    setup_working_directory: Path,
+    auto_mock_dependencies: dict,
+    capsys: pytest.CaptureFixture,
+):
+    root_path = setup_working_directory
+    auto_mock_dependencies["utils_ROOT"].return_value = root_path
+    auto_mock_dependencies["next_ROOT"].return_value = root_path
+
+    config_direct_calls_missing = mock_config.copy()
+    provider_details = config_direct_calls_missing["ai_provider"].copy()  # type: ignore
+    if "direct_api_calls" in provider_details:
+        del provider_details["direct_api_calls"]  # Remove the key
+    # 'name' is still 'openai', but direct_api_calls defaults to False
+    config_direct_calls_missing["ai_provider"] = provider_details
+
+    auto_mock_dependencies["load_config"].return_value = config_direct_calls_missing
+    auto_mock_dependencies["read_lock"].return_value = mock_lock
+
+    mock_generate_text_func = auto_mock_dependencies["generate_text"]
+
+    run_next()
+
+    captured = capsys.readouterr()
+    # Should fall back to manual because direct_api_calls defaults to False
+    assert (
+        "ℹ️  Direct API calls are disabled or provider is not configured for direct calls."
+        in captured.out
+    )
+    assert "📝  Generated AI prompt file:" in captured.out
+    mock_generate_text_func.assert_not_called()
+
+
+# Ensure conftest.py or relevant fixtures are available if this file is run standalone
+# For AiProviderConfig fixtures like openai_provider_config:
+# If they are defined in test_ai_service.py, pytest might pick them up if tests are run together.
+# For robustness, important shared fixtures could be in a conftest.py at the 'tests' or 'tests/unit' level.
+# The current mock_ai_provider_openai_direct is defined locally, which is fine.
+# The parametrize for mock_config indirectly uses these AiProviderConfig fixtures.
+# Make sure `openai_provider_config` fixture (if used by name from another file) is accessible.
+# Here, `mock_ai_provider_openai_direct` is defined locally, so it's fine.
