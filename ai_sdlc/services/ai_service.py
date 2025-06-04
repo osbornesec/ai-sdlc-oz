@@ -77,17 +77,17 @@ def generate_text_openai(
             raise OpenAIError("OpenAI API returned an empty message content.")
         return content
     except openai.AuthenticationError as e:
-        raise OpenAIError(f"OpenAI API Authentication Error: {e}. Check your API key.")
+        raise OpenAIError(f"OpenAI API Authentication Error: {e}. Check your API key.") from e
     except openai.APITimeoutError as e:
-        raise OpenAIError(f"OpenAI API Timeout Error: {e}. Try increasing timeout_seconds.")
+        raise OpenAIError(f"OpenAI API Timeout Error: {e}. Try increasing timeout_seconds.") from e
     except openai.APIConnectionError as e:
-        raise OpenAIError(f"OpenAI API Connection Error: {e}. Check your network connection.")
+        raise OpenAIError(f"OpenAI API Connection Error: {e}. Check your network connection.") from e
     except openai.RateLimitError as e:
-        raise OpenAIError(f"OpenAI API Rate Limit Error: {e}. Please check your usage and limits.")
+        raise OpenAIError(f"OpenAI API Rate Limit Error: {e}. Please check your usage and limits.") from e
     except openai.APIStatusError as e: # General status error
-        raise OpenAIError(f"OpenAI API Error (Status {e.status_code}): {e.response}")
+        raise OpenAIError(f"OpenAI API Error (Status {e.status_code}): {e.response}") from e
     except Exception as e: # Catch any other OpenAI or unexpected errors
-        raise OpenAIError(f"An unexpected error occurred with OpenAI: {e}")
+        raise OpenAIError(f"An unexpected error occurred with OpenAI: {e}") from e
 
 
 def generate_text_anthropic(
@@ -131,17 +131,17 @@ def generate_text_anthropic(
             raise AnthropicError("Anthropic API returned empty message content.")
         return content
     except anthropic.AuthenticationError as e:
-        raise AnthropicError(f"Anthropic API Authentication Error: {e}. Check your API key.")
+        raise AnthropicError(f"Anthropic API Authentication Error: {e}. Check your API key.") from e
     except anthropic.APITimeoutError as e:
-        raise AnthropicError(f"Anthropic API Timeout Error: {e}. Try increasing timeout_seconds.")
+        raise AnthropicError(f"Anthropic API Timeout Error: {e}. Try increasing timeout_seconds.") from e
     except anthropic.APIConnectionError as e:
-        raise AnthropicError(f"Anthropic API Connection Error: {e}. Check your network connection.")
+        raise AnthropicError(f"Anthropic API Connection Error: {e}. Check your network connection.") from e
     except anthropic.RateLimitError as e:
-        raise AnthropicError(f"Anthropic API Rate Limit Error: {e}. Please check your usage and limits.")
+        raise AnthropicError(f"Anthropic API Rate Limit Error: {e}. Please check your usage and limits.") from e
     except anthropic.APIStatusError as e: # General status error
-        raise AnthropicError(f"Anthropic API Error (Status {e.status_code}): {e.response}")
+        raise AnthropicError(f"Anthropic API Error (Status {e.status_code}): {e.response}") from e
     except Exception as e: # Catch any other unexpected errors
-        raise AnthropicError(f"An unexpected error occurred with Anthropic: {e}")
+        raise AnthropicError(f"An unexpected error occurred with Anthropic: {e}") from e
 
 
 def generate_text(
@@ -180,9 +180,9 @@ def generate_text(
 
     if provider_name == "openai":
         return generate_text_openai(prompt, model, api_key, timeout)
-    elif provider_name == "anthropic":
+    if provider_name == "anthropic":
         return generate_text_anthropic(prompt, model, api_key, timeout, max_tokens)
-    else:
-        raise UnsupportedProviderError(
-            f"Unsupported AI provider: {provider_name}. Supported providers are: 'openai', 'anthropic', 'manual'."
+    
+    raise UnsupportedProviderError(
+        f"Unsupported AI provider: {provider_name}. Supported providers are: 'openai', 'anthropic', 'manual'."
         )

@@ -2,9 +2,7 @@
 
 import os
 import pytest
-from unittest import mock
-from unittest.mock import patch, MagicMock, Mock
-import sys
+from unittest.mock import patch, MagicMock
 
 # Attempt to import actual openai errors for isinstance checks if available
 try:
