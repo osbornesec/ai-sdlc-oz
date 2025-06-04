@@ -215,7 +215,11 @@ class TestContext7Client:
         }
         
         # Mock the retry method to return our response
-        with patch.object(client, '_execute_tool_with_retry', return_value=mock_response) as mock_retry:
+        with patch.object(
+            client,
+            '_execute_tool_with_retry',
+            new=AsyncMock(return_value=mock_response),
+        ) as mock_retry:
             result = client.resolve_library_id("react")
         
         assert result == "/facebook/react"
@@ -226,9 +230,18 @@ class TestContext7Client:
         """Test error handling in resolve_library_id."""
         mock_loop = Mock()
         mock_new_loop.return_value = mock_loop
-        mock_loop.run_until_complete.side_effect = asyncio.TimeoutError()
-        
-        with patch('ai_sdlc.services.context7_client.logger') as mock_logger:
+
+        def run_until_complete_side_effect(coro):
+            asyncio.run(coro)
+            raise asyncio.TimeoutError()
+
+        mock_loop.run_until_complete.side_effect = run_until_complete_side_effect
+
+        with patch('ai_sdlc.services.context7_client.logger') as mock_logger, patch.object(
+            client,
+            '_execute_tool_with_retry',
+            new=AsyncMock(return_value=None),
+        ):
             result = client.resolve_library_id("test")
         
         assert result is None
