@@ -2,14 +2,14 @@ version = "0.1.0"
 
 # ordered lifecycle steps
 steps = [
-  "0-idea",
-  "1-prd",
-  "2-prd-plus",
-  "3-system-template",
-  "4-systems-patterns",
-  "5-tasks",
-  "6-tasks-plus",
-  "7-tests"
+  "00-idea",
+  "01-prd",
+  "02-prd-plus",
+  "03-system-template",
+  "04-systems-patterns",
+  "05-tasks",
+  "06-tasks-plus",
+  "07-tests"
 ]
 
 slug_rule    = "kebab-case"
@@ -26,22 +26,22 @@ default_tokens = 10000
 
 # Auto-fetch libraries for specific steps
 [[context7.auto_fetch]]
-step = "3-system-template"
+step = "03-system-template"
 libraries = ["react", "vue", "angular", "fastapi", "django", "express"]
 
 [[context7.auto_fetch]]
-step = "4-systems-patterns"
+step = "04-systems-patterns"
 libraries = ["redux", "mobx", "sqlalchemy", "prisma"]
 
 [[context7.auto_fetch]]
-step = "7-tests"
+step = "07-tests"
 libraries = ["pytest", "jest", "vitest", "cypress"]
 
 [mermaid]
 graph = """
 flowchart TD
-  I[0-idea]-->P1[1-prd]-->P2[2-prd-plus]-->A[3-system-template]
-  A-->SP[4-systems-patterns]-->T[5-tasks]-->TP[6-tasks-plus]-->TESTS[7-tests]
+  I[00-idea]-->P1[01-prd]-->P2[02-prd-plus]-->A[03-system-template]
+  A-->SP[04-systems-patterns]-->T[05-tasks]-->TP[06-tasks-plus]-->TESTS[07-tests]
 
   %% Iteration loop for steps 1-5
   CHAT[💬 Iterate with AI Chat]
