@@ -1,0 +1,23 @@
+id: async-best-practices
+language: python
+message: "Use 'async with' for async context managers to ensure proper cleanup"
+rule:
+  pattern: |
+    $CLIENT = $ASYNC_FUNC($$$ARGS)
+  inside:
+    kind: function_definition
+    has:
+      field: name
+      regex: "^async "
+  not:
+    inside:
+      any:
+        - pattern: |
+            async with $$$
+        - kind: with_statement
+          has:
+            field: async
+  constraints:
+    ASYNC_FUNC:
+      regex: ".*(Client|Session|Connection).*"
+severity: warning
