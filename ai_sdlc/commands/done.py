@@ -22,7 +22,9 @@ def run_done(args: list[str] | None = None) -> None:
     if not lock:
         print("❌  No active workstream.")
         return
-    assert "slug" in lock and "current" in lock
+    if "slug" not in lock or "current" not in lock:
+        print("❌  Invalid lock file. Run 'aisdlc status' to regenerate.")
+        return
     slug = lock["slug"]
     if lock["current"] != steps[-1]:
         print("❌  Workstream not finished yet. Complete all steps before archiving.")

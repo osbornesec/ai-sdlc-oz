@@ -22,47 +22,53 @@ class Test100Coverage:
         """Test the main block execution."""
         # Import the cli module in a way that triggers the main block
         import importlib.util
-        spec = importlib.util.spec_from_file_location("__main__", "/mnt/c/ai-sdlc-oz/ai_sdlc/cli.py")
-        with patch('sys.argv', ['cli.py', '--help']):
+
+        spec = importlib.util.spec_from_file_location(
+            "__main__", "/mnt/c/ai-sdlc-oz/ai_sdlc/cli.py"
+        )
+        with patch("sys.argv", ["cli.py", "--help"]):
             with pytest.raises(SystemExit):
                 if spec and spec.loader:
-                    module = importlib.util.module_from_spec(spec)
                     # This would execute the module including if __name__ == "__main__"
                     # but we can't actually test it this way safely
+                    pass
 
     # Context command - remaining lines
     def test_context_duplicate_libraries(self, temp_project_dir: Path, capsys):
         """Test context with duplicate libraries."""
-        lock = {'slug': 'test', 'current': '01-prd'}
-        config = {'steps': ['00-idea', '01-prd'], 'context7': {'enabled': True}}
+        lock = {"slug": "test", "current": "01-prd"}
+        config = {"steps": ["00-idea", "01-prd"], "context7": {"enabled": True}}
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project_dir):
-            with patch('ai_sdlc.commands.context.load_config', return_value=config):
-                with patch('ai_sdlc.commands.context.read_lock', return_value=lock):
-                    with patch('ai_sdlc.commands.context.Context7Service') as mock_service:
+        with patch("ai_sdlc.commands.context.ROOT", temp_project_dir):
+            with patch("ai_sdlc.commands.context.load_config", return_value=config):
+                with patch("ai_sdlc.commands.context.read_lock", return_value=lock):
+                    with patch(
+                        "ai_sdlc.commands.context.Context7Service"
+                    ) as mock_service:
                         instance = mock_service.return_value
                         instance.extract_libraries_from_text.return_value = []
                         instance.extract_libraries_for_step.return_value = []
                         instance.create_context_command_output.return_value = "Output"
 
                         # Test with duplicate libraries
-                        context.run_context(['--libraries', 'pytest,django,pytest'])
+                        context.run_context(["--libraries", "pytest,django,pytest"])
 
-        captured = capsys.readouterr()
         # Should deduplicate
         instance.create_context_command_output.assert_called_once()
         call_args = instance.create_context_command_output.call_args[0][0]
-        assert call_args == ['pytest', 'django']  # No duplicate
+        assert call_args == ["pytest", "django"]  # No duplicate
 
     def test_context_workdir_not_exists(self, temp_project_dir: Path, capsys):
         """Test context when workdir doesn't exist."""
-        lock = {'slug': 'missing-feature', 'current': '01-prd'}
-        config = {'steps': ['00-idea', '01-prd'], 'context7': {'enabled': True}}
+        lock = {"slug": "missing-feature", "current": "01-prd"}
+        config = {"steps": ["00-idea", "01-prd"], "context7": {"enabled": True}}
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project_dir):
-            with patch('ai_sdlc.commands.context.load_config', return_value=config):
-                with patch('ai_sdlc.commands.context.read_lock', return_value=lock):
-                    with patch('ai_sdlc.commands.context.Context7Service') as mock_service:
+        with patch("ai_sdlc.commands.context.ROOT", temp_project_dir):
+            with patch("ai_sdlc.commands.context.load_config", return_value=config):
+                with patch("ai_sdlc.commands.context.read_lock", return_value=lock):
+                    with patch(
+                        "ai_sdlc.commands.context.Context7Service"
+                    ) as mock_service:
                         instance = mock_service.return_value
                         instance.extract_libraries_from_text.return_value = []
                         instance.extract_libraries_for_step.return_value = []
@@ -75,20 +81,29 @@ class Test100Coverage:
 
     def test_context_step_recommendations(self, temp_project_dir: Path, capsys):
         """Test context showing step recommendations."""
-        lock = {'slug': 'test', 'current': '00-idea'}
-        config = {'steps': ['00-idea', '01-prd', '02-prd-plus'], 'context7': {'enabled': True}}
+        lock = {"slug": "test", "current": "00-idea"}
+        config = {
+            "steps": ["00-idea", "01-prd", "02-prd-plus"],
+            "context7": {"enabled": True},
+        }
 
-        workdir = temp_project_dir / 'doing' / 'test'
+        workdir = temp_project_dir / "doing" / "test"
         workdir.mkdir(parents=True)
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project_dir):
-            with patch('ai_sdlc.commands.context.load_config', return_value=config):
-                with patch('ai_sdlc.commands.context.read_lock', return_value=lock):
-                    with patch('ai_sdlc.commands.context.Context7Service') as mock_service:
+        with patch("ai_sdlc.commands.context.ROOT", temp_project_dir):
+            with patch("ai_sdlc.commands.context.load_config", return_value=config):
+                with patch("ai_sdlc.commands.context.read_lock", return_value=lock):
+                    with patch(
+                        "ai_sdlc.commands.context.Context7Service"
+                    ) as mock_service:
                         instance = mock_service.return_value
-                        instance.extract_libraries_from_text.return_value = ['existing']
+                        instance.extract_libraries_from_text.return_value = ["existing"]
                         instance.extract_libraries_for_step.return_value = []
-                        instance.get_step_specific_libraries.return_value = ['react', 'typescript', 'existing']
+                        instance.get_step_specific_libraries.return_value = [
+                            "react",
+                            "typescript",
+                            "existing",
+                        ]
                         instance.create_context_command_output.return_value = "Output"
 
                         context.run_context([])
@@ -100,13 +115,15 @@ class Test100Coverage:
 
     def test_context_invalid_step_index(self, temp_project_dir: Path, capsys):
         """Test context with current step not in steps list."""
-        lock = {'slug': 'test', 'current': 'invalid-step'}
-        config = {'steps': ['00-idea', '01-prd'], 'context7': {'enabled': True}}
+        lock = {"slug": "test", "current": "invalid-step"}
+        config = {"steps": ["00-idea", "01-prd"], "context7": {"enabled": True}}
 
-        with patch('ai_sdlc.commands.context.ROOT', temp_project_dir):
-            with patch('ai_sdlc.commands.context.load_config', return_value=config):
-                with patch('ai_sdlc.commands.context.read_lock', return_value=lock):
-                    with patch('ai_sdlc.commands.context.Context7Service') as mock_service:
+        with patch("ai_sdlc.commands.context.ROOT", temp_project_dir):
+            with patch("ai_sdlc.commands.context.load_config", return_value=config):
+                with patch("ai_sdlc.commands.context.read_lock", return_value=lock):
+                    with patch(
+                        "ai_sdlc.commands.context.Context7Service"
+                    ) as mock_service:
                         instance = mock_service.return_value
                         instance.extract_libraries_from_text.return_value = []
                         instance.extract_libraries_for_step.return_value = []
@@ -121,10 +138,10 @@ class Test100Coverage:
     def test_init_create_directory_exists_ok(self, temp_project_dir: Path, capsys):
         """Test init when directories already exist."""
         # Pre-create all directories
-        for dirname in ['prompts', 'doing', 'done']:
+        for dirname in ["prompts", "doing", "done"]:
             (temp_project_dir / dirname).mkdir()
 
-        with patch('ai_sdlc.commands.init.ROOT', temp_project_dir):
+        with patch("ai_sdlc.commands.init.ROOT", temp_project_dir):
             init.run_init([])
 
         captured = capsys.readouterr()
@@ -132,24 +149,27 @@ class Test100Coverage:
 
     def test_init_prompt_already_exists(self, temp_project_dir: Path, capsys):
         """Test init when prompt files already exist."""
-        with patch('ai_sdlc.commands.init.ROOT', temp_project_dir):
+        with patch("ai_sdlc.commands.init.ROOT", temp_project_dir):
             # Create directories
-            for dirname in ['prompts', 'doing', 'done']:
+            for dirname in ["prompts", "doing", "done"]:
                 (temp_project_dir / dirname).mkdir()
 
             # Pre-create prompt files
-            prompts_dir = temp_project_dir / 'prompts'
+            prompts_dir = temp_project_dir / "prompts"
             for i in range(8):
-                (prompts_dir / f'0{i}-test.prompt.yml').write_text('existing')
+                (prompts_dir / f"0{i}-test.prompt.yml").write_text("existing")
 
             # Create scaffold dir
-            scaffold_dir = temp_project_dir / 'scaffold'
+            scaffold_dir = temp_project_dir / "scaffold"
             scaffold_dir.mkdir()
             for i in range(8):
-                (scaffold_dir / f'0{i}-test.prompt.yml').write_text('new content')
+                (scaffold_dir / f"0{i}-test.prompt.yml").write_text("new content")
 
-            with patch('ai_sdlc.commands.init.SCAFFOLD_DIR', scaffold_dir):
-                with patch('ai_sdlc.commands.init.PROMPT_FILE_NAMES', [f'0{i}-test.prompt.yml' for i in range(8)]):
+            with patch("ai_sdlc.commands.init.SCAFFOLD_DIR", scaffold_dir):
+                with patch(
+                    "ai_sdlc.commands.init.PROMPT_FILE_NAMES",
+                    [f"0{i}-test.prompt.yml" for i in range(8)],
+                ):
                     init.run_init([])
 
         captured = capsys.readouterr()
@@ -159,11 +179,11 @@ class Test100Coverage:
     def test_config_validator_duplicate_step_error_message(self):
         """Test config validator duplicate step detection."""
         config = {
-            'version': '0.1.0',
-            'steps': ['00-idea', '01-prd', '01-prd'],
-            'active_dir': 'doing',
-            'done_dir': 'done',
-            'prompt_dir': 'prompts'
+            "version": "0.1.0",
+            "steps": ["00-idea", "01-prd", "01-prd"],
+            "active_dir": "doing",
+            "done_dir": "done",
+            "prompt_dir": "prompts",
         }
 
         with pytest.raises(ConfigValidationError) as exc_info:
@@ -177,23 +197,25 @@ class Test100Coverage:
         """Test slugify when unidecode is not available."""
         # Save original unidecode import
         import sys
+
         original_modules = sys.modules.copy()
 
         try:
             # Remove unidecode from modules
-            if 'unidecode' in sys.modules:
-                del sys.modules['unidecode']
-            if 'ai_sdlc.utils' in sys.modules:
-                del sys.modules['ai_sdlc.utils']
+            if "unidecode" in sys.modules:
+                del sys.modules["unidecode"]
+            if "ai_sdlc.utils" in sys.modules:
+                del sys.modules["ai_sdlc.utils"]
 
             # Mock import to raise ImportError
             original_import = __builtins__.__import__
+
             def mock_import(name, *args, **kwargs):
-                if name == 'unidecode':
+                if name == "unidecode":
                     raise ImportError("No module named 'unidecode'")
                 return original_import(name, *args, **kwargs)
 
-            with patch('builtins.__import__', mock_import):
+            with patch("builtins.__import__", mock_import):
                 # Re-import utils to trigger the except block
                 import ai_sdlc.utils as utils_new
 
@@ -208,12 +230,14 @@ class Test100Coverage:
     # Utils - lines 60-63 (logger error)
     def test_utils_read_lock_permission_error(self, temp_project_dir: Path):
         """Test read_lock with permission error."""
-        lock_file = temp_project_dir / '.aisdlc.lock'
+        lock_file = temp_project_dir / ".aisdlc.lock"
         lock_file.write_text('{"test": "data"}')
 
-        with patch('ai_sdlc.utils.LOCK', lock_file):
-            with patch('pathlib.Path.read_text', side_effect=PermissionError("Access denied")):
-                with patch('ai_sdlc.utils.logger') as mock_logger:
+        with patch("ai_sdlc.utils.LOCK", lock_file):
+            with patch(
+                "pathlib.Path.read_text", side_effect=PermissionError("Access denied")
+            ):
+                with patch("ai_sdlc.utils.logger") as mock_logger:
                     result = utils.read_lock()
                     assert result == {}
                     mock_logger.error.assert_called_once()
@@ -239,7 +263,7 @@ class Test100Coverage:
         mock_client = AsyncMock()
         mock_client.post.side_effect = httpx.TimeoutException("Timeout")
 
-        with patch.object(client, '_ensure_client', return_value=mock_client):
+        with patch.object(client, "_ensure_client", return_value=mock_client):
             with pytest.raises(Context7TimeoutError):
                 await client._execute_tool("test-tool", {})
 
@@ -250,11 +274,11 @@ class Test100Coverage:
 
         mock_response = AsyncMock()
         mock_response.status_code = 200
-        mock_response.headers = {'content-type': 'text/event-stream'}
+        mock_response.headers = {"content-type": "text/event-stream"}
 
         async def aiter_lines():
-            yield b'event: test\n'
-            yield b': comment\n'
+            yield b"event: test\n"
+            yield b": comment\n"
             yield b'data: {"valid": "data"}\n'
 
         mock_response.aiter_lines = aiter_lines
@@ -285,12 +309,12 @@ class Test100Coverage:
 
         try:
             # Should use run_in_executor when loop exists
-            with patch.object(loop, 'run_in_executor') as mock_executor:
+            with patch.object(loop, "run_in_executor") as mock_executor:
                 future = asyncio.Future()
                 future.set_result("executor result")
                 mock_executor.return_value = future
 
-                result = loop.run_until_complete(
+                loop.run_until_complete(
                     asyncio.create_task(service._run_async(test_coro()))
                 )
 
@@ -304,9 +328,9 @@ class Test100Coverage:
         """Test formatting when library docs indicate not finalized."""
         service = Context7Service(Path("/tmp"))
 
-        docs = service._format_library_docs_section({
-            'unknown': Context7Service.DOCS_NOT_FOUND_MSG
-        })
+        docs = service._format_library_docs_section(
+            {"unknown": Context7Service.DOCS_NOT_FOUND_MSG}
+        )
 
         assert "### Unknown Documentation" in docs
         assert "<!-- Documentation not available for unknown -->" in docs
