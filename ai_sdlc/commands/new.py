@@ -43,12 +43,12 @@ def run_new(args: list[str] | None) -> None:
         print("   Idea title must contain alphanumeric characters")
         sys.exit(1)
 
-    workdir = ROOT / "doing" / slug
+    workdir = ROOT / config["active_dir"] / slug
 
     # Validate path to prevent traversal
     try:
         workdir_resolved = workdir.resolve()
-        expected_parent = (ROOT / "doing").resolve()
+        expected_parent = (ROOT / config["active_dir"]).resolve()
         if not str(workdir_resolved).startswith(str(expected_parent)):
             print("❌  Security Error: Invalid path detected")
             sys.exit(1)
