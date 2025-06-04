@@ -41,6 +41,7 @@ classifiers = [
 dependencies = [
     "tomli >= 1.2.0 ; python_version < '3.11'",
     "httpx >= 0.25.0",
+    "portalocker>=2.7.0",
 ]
 
 [project.urls]

@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import fcntl
+import portalocker
 import json
 import logging
 import re
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,27 +28,25 @@ class Context7Service:
         self.client = Context7Client()
 
     def _acquire_lock(self, timeout: int = 10) -> None:
-        """Acquire a file lock with exponential backoff."""
-        start_time = time.time()
+        """Acquire a file lock with a timeout."""
         self.cache_lock_file.touch(exist_ok=True)
-        backoff = 0.01  # Start with 10ms
 
-        with open(self.cache_lock_file, 'r+') as lock_file:
-            while True:
-                try:
-                    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    return
-                except OSError as e:
-                    if time.time() - start_time > timeout:
-                        raise TimeoutError("Could not acquire cache lock") from e
-                    time.sleep(min(backoff, 1.0))  # Cap at 1 second
-                    backoff *= 2  # Exponential backoff
+        try:
+            self._lock_handle = portalocker.Lock(
+                self.cache_lock_file,
+                mode="r+",
+                timeout=timeout,
+            )
+            self._lock_handle.acquire()
+        except portalocker.exceptions.LockException as e:
+            raise TimeoutError("Could not acquire cache lock") from e
 
     def _release_lock(self) -> None:
         """Release the file lock."""
         try:
-            with open(self.cache_lock_file, 'r+') as lock_file:
-                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+            if getattr(self, "_lock_handle", None) is not None:
+                self._lock_handle.release()
+                self._lock_handle = None
         except Exception as e:
             logger.warning(f"Error releasing lock: {e}")
 
