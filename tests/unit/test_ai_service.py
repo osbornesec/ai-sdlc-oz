@@ -24,15 +24,15 @@ except ImportError:
 
 
 from ai_sdlc.services.ai_service import (
-    generate_text,
-    get_api_key,
-    generate_text_openai,
     AiServiceError,
-    UnsupportedProviderError,
+    AnthropicError,
     ApiKeyMissingError,
     OpenAIError,
-    AnthropicError, # Import new error
-    generate_text_anthropic, # Import new function
+    UnsupportedProviderError,
+    generate_text,
+    generate_text_anthropic,
+    generate_text_openai,
+    get_api_key,
 )
 from ai_sdlc.types import AiProviderConfig
 
@@ -62,10 +62,14 @@ class MockOpenAIModule:
 
     # Mocked Exception classes that mirror real OpenAI exceptions
     # These are raised by the *mocked* client below
-    class AuthenticationError(Exception): pass
-    class APITimeoutError(Exception): pass
-    class RateLimitError(Exception): pass
-    class APIConnectionError(Exception): pass
+    class AuthenticationError(Exception):
+        pass
+    class APITimeoutError(Exception):
+        pass
+    class RateLimitError(Exception):
+        pass
+    class APIConnectionError(Exception):
+        pass
     class APIStatusError(Exception):
         def __init__(self, message, *, response, body=None): # Match real signature
             super().__init__(message)
@@ -84,10 +88,14 @@ class MockOpenAIModule:
 
 class MockAnthropicModule:
     """Mocks the `anthropic` module and its `Anthropic` client class."""
-    class AuthenticationError(Exception): pass
-    class APITimeoutError(Exception): pass
-    class RateLimitError(Exception): pass
-    class APIConnectionError(Exception): pass
+    class AuthenticationError(Exception):
+        pass
+    class APITimeoutError(Exception):
+        pass
+    class RateLimitError(Exception):
+        pass
+    class APIConnectionError(Exception):
+        pass
     class APIStatusError(Exception):
         def __init__(self, message, *, response, body=None):
             super().__init__(message)
