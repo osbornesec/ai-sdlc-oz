@@ -4,7 +4,12 @@
 from ai_sdlc.utils import load_config, read_lock
 
 
-def run_status() -> None:
+def run_status(args: list[str] | None = None) -> None:
+    """Show progress through lifecycle steps.
+
+    Args:
+        args: Command line arguments (currently unused)
+    """
     conf = load_config()
     steps = conf["steps"]
     lock = read_lock()

@@ -5,24 +5,18 @@ from __future__ import annotations
 
 import sys
 from collections.abc import Callable
-from importlib import import_module
 
+from .commands import context, done, init, new, next, status
 from .utils import load_config, read_lock  # Added for status display
 
-_COMMANDS: dict[str, str] = {
-    "init": "ai_sdlc.commands.init:run_init",
-    "new": "ai_sdlc.commands.new:run_new",
-    "next": "ai_sdlc.commands.next:run_next",
-    "status": "ai_sdlc.commands.status:run_status",
-    "done": "ai_sdlc.commands.done:run_done",
+_COMMANDS: dict[str, Callable[[list[str]], None]] = {
+    "init": init.run_init,
+    "new": new.run_new,
+    "next": next.run_next,
+    "status": status.run_status,
+    "done": done.run_done,
+    "context": context.run_context,
 }
-
-
-def _resolve(dotted: str) -> Callable[..., None]:
-    """Import `"module:function"` and return the function object."""
-    module_name, func_name = dotted.split(":")
-    module = import_module(module_name)
-    return getattr(module, func_name)
 
 
 def _display_compact_status() -> None:
@@ -69,8 +63,8 @@ def main() -> None:  # noqa: D401
         print(f"Usage: aisdlc [{valid}] [--help]")
         sys.exit(1)
 
-    handler = _resolve(_COMMANDS[cmd])
-    handler(args) if args else handler()
+    handler = _COMMANDS[cmd]
+    handler(args)
 
     # Display status after most commands, unless it's status itself or init (before lock exists)
     if cmd not in ["status", "init"]:

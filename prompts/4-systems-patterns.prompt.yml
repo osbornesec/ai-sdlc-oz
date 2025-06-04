@@ -10,6 +10,11 @@ You will receive the detailed architectural plan (which was the output of `3-sys
 </prev_step>
 ```
 
+<context7_docs>
+<!-- Context7 library documentation will be automatically inserted here -->
+<!-- This includes current API references, best practices, and version-specific information -->
+</context7_docs>
+
 **Your Primary Goal:**
 
 To produce the complete content for the `rules/system.md` file. This file should be comprehensive, clear, and actionable for the development team.

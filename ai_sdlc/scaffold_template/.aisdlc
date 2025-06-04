@@ -18,6 +18,25 @@ prompt_dir   = "prompts"
 active_dir   = "doing"
 done_dir     = "done"
 
+[context7]
+# Enable Context7 library documentation integration
+enabled = true
+# Maximum tokens to fetch per library
+default_tokens = 10000
+
+# Auto-fetch libraries for specific steps
+[[context7.auto_fetch]]
+step = "3-system-template"
+libraries = ["react", "vue", "angular", "fastapi", "django", "express"]
+
+[[context7.auto_fetch]]
+step = "4-systems-patterns"
+libraries = ["redux", "mobx", "sqlalchemy", "prisma"]
+
+[[context7.auto_fetch]]
+step = "7-tests"
+libraries = ["pytest", "jest", "vitest", "cypress"]
+
 [mermaid]
 graph = """
 flowchart TD

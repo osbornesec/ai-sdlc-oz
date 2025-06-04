@@ -7,10 +7,30 @@ from ai_sdlc import utils
 
 
 def test_slugify():
+    # Test normal cases
     assert utils.slugify("Hello World!") == "hello-world"
     assert utils.slugify("  Test Slug with Spaces  ") == "test-slug-with-spaces"
     assert utils.slugify("Special!@#Chars") == "special-chars"
-    assert utils.slugify("") == "idea"  # As per current implementation
+    assert utils.slugify("Test123") == "test123"
+    assert utils.slugify("unicode-café") == "unicode-caf"
+    
+    # Test error cases
+    with pytest.raises(ValueError, match="Cannot slugify empty text"):
+        utils.slugify("")
+    
+    with pytest.raises(ValueError, match="Cannot slugify empty text"):
+        utils.slugify("   ")
+    
+    with pytest.raises(ValueError, match="contains no valid characters"):
+        utils.slugify("!@#$%^&*()")
+    
+    with pytest.raises(ValueError, match="contains no valid characters"):
+        utils.slugify("---")
+        
+    # Test edge cases
+    assert utils.slugify("a") == "a"
+    assert utils.slugify("1") == "1"
+    assert utils.slugify("test-with-dashes") == "test-with-dashes"
 
 
 def test_load_config_success(temp_project_dir: Path, mocker):
