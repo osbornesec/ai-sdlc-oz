@@ -22,13 +22,15 @@ class TestContextCommand:
             
             # Create config file
             config = {
+                "version": "0.1.0",
                 "active_dir": "doing",
                 "done_dir": "done",
                 "prompt_dir": "prompts",
-                "steps": ["0-idea", "1-prd", "2-prd-plus"]
+                "steps": ["00-idea", "01-prd", "02-prd-plus"]
             }
             (project_dir / ".aisdlc").write_text(
                 f"""
+                version = "{config['version']}"
                 active_dir = "{config['active_dir']}"
                 done_dir = "{config['done_dir']}"
                 prompt_dir = "{config['prompt_dir']}"
@@ -39,7 +41,7 @@ class TestContextCommand:
             # Create lock file
             lock = {
                 "slug": "test-project",
-                "current": "0-idea"
+                "current": "00-idea"
             }
             (project_dir / ".aisdlc.lock").write_text(json.dumps(lock))
             
@@ -47,7 +49,7 @@ class TestContextCommand:
             (project_dir / "doing" / "test-project").mkdir(parents=True)
             
             # Create idea file with library mentions
-            idea_file = project_dir / "doing" / "test-project" / "0-idea-test-project.md"
+            idea_file = project_dir / "doing" / "test-project" / "00-idea-test-project.md"
             idea_file.write_text("""
             # Test Project
             
@@ -61,7 +63,8 @@ class TestContextCommand:
         """Test context command with no arguments."""
         monkeypatch.chdir(temp_project)
         
-        with patch('ai_sdlc.commands.context.ROOT', temp_project):
+        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
+             patch('ai_sdlc.utils.ROOT', temp_project):
             with patch('builtins.print') as mock_print:
                 run_context([])
         
@@ -76,7 +79,8 @@ class TestContextCommand:
         """Test context command with --libraries argument."""
         monkeypatch.chdir(temp_project)
         
-        with patch('ai_sdlc.commands.context.ROOT', temp_project):
+        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
+             patch('ai_sdlc.utils.ROOT', temp_project):
             with patch('builtins.print') as mock_print:
                 run_context(["--libraries", "django,redis"])
         
@@ -88,7 +92,8 @@ class TestContextCommand:
         """Test context command with invalid library name."""
         monkeypatch.chdir(temp_project)
         
-        with patch('ai_sdlc.commands.context.ROOT', temp_project):
+        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
+             patch('ai_sdlc.utils.ROOT', temp_project):
             with pytest.raises(SystemExit):
                 with patch('builtins.print') as mock_print:
                     run_context(["--libraries", "inv@lid!"])
@@ -103,15 +108,16 @@ class TestContextCommand:
         # Create cache directory with a file
         cache_dir = temp_project / ".context7_cache"
         cache_dir.mkdir()
-        (cache_dir / "react_0-idea.md").write_text("Cached content")
+        (cache_dir / "react_00-idea.md").write_text("Cached content")
         
-        with patch('ai_sdlc.commands.context.ROOT', temp_project):
+        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
+             patch('ai_sdlc.utils.ROOT', temp_project):
             with patch('builtins.print') as mock_print:
                 run_context(["--show-cache"])
         
         output = " ".join(str(call[0][0]) for call in mock_print.call_args_list)
         assert "Context7 Cache Contents" in output
-        assert "react_0-idea" in output
+        assert "react_00-idea" in output
 
     def test_context_clear_cache(self, temp_project, monkeypatch):
         """Test context command with --clear-cache."""
@@ -122,7 +128,8 @@ class TestContextCommand:
         cache_dir.mkdir()
         (cache_dir / "test.md").write_text("test")
         
-        with patch('ai_sdlc.commands.context.ROOT', temp_project):
+        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
+             patch('ai_sdlc.utils.ROOT', temp_project):
             with patch('builtins.print') as mock_print:
                 run_context(["--clear-cache"])
         
@@ -138,7 +145,8 @@ class TestContextCommand:
         # Remove lock file
         (temp_project / ".aisdlc.lock").write_text("{}")
         
-        with patch('ai_sdlc.commands.context.ROOT', temp_project):
+        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
+             patch('ai_sdlc.utils.ROOT', temp_project):
             with pytest.raises(SystemExit):
                 with patch('builtins.print') as mock_print:
                     run_context([])
@@ -150,7 +158,8 @@ class TestContextCommand:
         """Test context command with unknown argument."""
         monkeypatch.chdir(temp_project)
         
-        with patch('ai_sdlc.commands.context.ROOT', temp_project):
+        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
+             patch('ai_sdlc.utils.ROOT', temp_project):
             with pytest.raises(SystemExit):
                 with patch('builtins.print') as mock_print:
                     run_context(["--unknown"])
@@ -158,7 +167,7 @@ class TestContextCommand:
         output = " ".join(str(call[0][0]) for call in mock_print.call_args_list)
         assert "Unknown argument" in output
 
-    @patch('ai_sdlc.services.context7_service.Context7Service')
+    @patch('ai_sdlc.commands.context.Context7Service')
     def test_context_with_step_recommendations(self, mock_service_class, temp_project, monkeypatch):
         """Test context command shows step-specific recommendations."""
         monkeypatch.chdir(temp_project)
@@ -173,11 +182,12 @@ class TestContextCommand:
         # Update lock to be on a test step
         lock = {
             "slug": "test-project",
-            "current": "1-prd"
+            "current": "01-prd"
         }
         (temp_project / ".aisdlc.lock").write_text(json.dumps(lock))
         
-        with patch('ai_sdlc.commands.context.ROOT', temp_project):
+        with patch('ai_sdlc.commands.context.ROOT', temp_project), \
+             patch('ai_sdlc.utils.ROOT', temp_project):
             with patch('builtins.print') as mock_print:
                 run_context([])
         

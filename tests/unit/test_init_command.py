@@ -26,14 +26,14 @@ def test_run_init(temp_project_dir: Path, mocker):
         
         # Verify prompt files were created
         expected_prompts = [
-            "0-idea.prompt.yml",
-            "1-prd.prompt.yml", 
-            "2-prd-plus.prompt.yml",
-            "3-system-template.prompt.yml",
-            "4-systems-patterns.prompt.yml",
-            "5-tasks.prompt.yml",
-            "6-tasks-plus.prompt.yml",
-            "7-tests.prompt.yml"
+            "00-idea.prompt.yml",
+            "01-prd.prompt.yml",
+            "02-prd-plus.prompt.yml",
+            "03-system-template.prompt.yml",
+            "04-systems-patterns.prompt.yml",
+            "05-tasks.prompt.yml",
+            "06-tasks-plus.prompt.yml",
+            "07-tests.prompt.yml"
         ]
         
         for prompt_file in expected_prompts:

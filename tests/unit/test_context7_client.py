@@ -80,6 +80,18 @@ class TestContext7Client:
         
         assert client._closed
 
+    @pytest.mark.asyncio
+    async def test_loop_closed_after_context_exit(self):
+        """Event loop created by client should be closed on exit."""
+        loop = asyncio.new_event_loop()
+        with patch("asyncio.get_running_loop", side_effect=RuntimeError()):
+            with patch("asyncio.new_event_loop", return_value=loop):
+                async with Context7Client(api_key="test-key-123456789") as client:
+                    # Force loop creation
+                    client._ensure_loop()
+
+        assert loop.is_closed()
+
     def test_closed_client_raises_error(self):
         """Test that using closed client raises error."""
         client = Context7Client(api_key="test-key-123456789")
@@ -263,13 +275,21 @@ class TestContext7Client:
     async def test_execute_tool_timeout(self, client):
         """Test timeout handling in _execute_tool."""
         with patch.object(client, '_get_client') as mock_get_client:
-            mock_client = AsyncMock()
+            mock_client = Mock()
             mock_get_client.return_value = mock_client
-            
+
             # Mock stream to timeout
-            mock_stream = AsyncMock()
-            mock_stream.aiter_lines.side_effect = asyncio.TimeoutError()
-            mock_client.stream.return_value.__aenter__.return_value = mock_stream
-            
+            async def iter_lines():
+                raise asyncio.TimeoutError()
+                yield  # pragma: no cover
+
+            mock_stream = Mock()
+            mock_stream.aiter_lines = iter_lines
+            mock_stream.raise_for_status = Mock()
+            cm = AsyncMock()
+            cm.__aenter__.return_value = mock_stream
+            cm.__aexit__.return_value = None
+            mock_client.stream.return_value = cm
+
             result = await client._execute_tool("test-tool", {})
             assert result is None

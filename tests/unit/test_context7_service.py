@@ -159,6 +159,9 @@ class TestContext7Service:
         mock_client.resolve_library_id.return_value = "/vue/vue"
         mock_client.get_library_docs.return_value = "Fresh Vue docs"
         mock_client_class.return_value = mock_client
+
+        # Replace the service's client with our mock
+        service.client = mock_client
         
         # Test enrichment
         prompt = "Build a system"
