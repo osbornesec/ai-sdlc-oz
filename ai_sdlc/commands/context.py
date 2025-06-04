@@ -5,8 +5,8 @@ from __future__ import annotations
 import sys
 
 from ai_sdlc.services.context7_service import Context7Service
-from ai_sdlc.utils import ROOT, load_config, read_lock
 from ai_sdlc.types import ConfigDict, LockDict
+from ai_sdlc.utils import ROOT, load_config, read_lock
 
 
 def run_context(args: list[str] | None) -> None:

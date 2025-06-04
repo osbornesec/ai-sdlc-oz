@@ -1,8 +1,6 @@
-
 # pyright: reportMissingImports=false
 """Unit tests for Context7 service."""
 
-import json
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -10,7 +8,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from ai_sdlc.services.context7_service import Context7Service, LIBRARY_MAPPINGS
+from ai_sdlc.services.context7_service import Context7Service
 
 
 class TestContext7Service:
@@ -31,7 +29,7 @@ class TestContext7Service:
         """Test that initialization creates cache directory."""
         cache_dir = temp_cache_dir / "test_cache"
         assert not cache_dir.exists()
-        
+
         Context7Service(cache_dir)
         assert cache_dir.exists()
 
@@ -42,9 +40,9 @@ class TestContext7Service:
         The database is PostgreSQL and we're using Redux for state management.
         Testing is done with pytest and jest.
         """
-        
+
         libraries = service.extract_libraries_from_text(text)
-        
+
         assert "react" in libraries
         assert "fastapi" in libraries
         assert "postgresql" in libraries
@@ -55,9 +53,9 @@ class TestContext7Service:
     def test_extract_libraries_with_variants(self, service):
         """Test library extraction handles variants."""
         text = "Using ReactJS with Express.js and MongoDB"
-        
+
         libraries = service.extract_libraries_from_text(text)
-        
+
         assert "react" in libraries  # ReactJS -> react
         assert "express" in libraries  # Express.js -> express
         assert "mongodb" in libraries  # MongoDB -> mongodb
@@ -65,9 +63,9 @@ class TestContext7Service:
     def test_extract_libraries_case_insensitive(self, service):
         """Test library extraction is case insensitive."""
         text = "REACT and DJANGO with MYSQL"
-        
+
         libraries = service.extract_libraries_from_text(text)
-        
+
         assert "react" in libraries
         assert "django" in libraries
         assert "mysql" in libraries
@@ -84,7 +82,7 @@ class TestContext7Service:
         libs = service.get_step_specific_libraries("3-system-template")
         assert "react" in libs
         assert "fastapi" in libs
-        
+
         libs = service.get_step_specific_libraries("7-tests")
         assert "pytest" in libs
         assert "jest" in libs
@@ -97,14 +95,14 @@ class TestContext7Service:
             "library_id": "test-lib"
         }
         assert service._is_cache_valid(valid_entry)
-        
+
         # Invalid cache entry (old)
         old_entry = {
             "timestamp": (datetime.now() - timedelta(days=8)).isoformat(),
             "library_id": "test-lib"
         }
         assert not service._is_cache_valid(old_entry)
-        
+
         # Invalid cache entry (no timestamp)
         invalid_entry = {"library_id": "test-lib"}
         assert not service._is_cache_valid(invalid_entry)
@@ -115,9 +113,9 @@ class TestContext7Service:
             "react": "React documentation content",
             "fastapi": "FastAPI documentation content"
         }
-        
+
         formatted = service.format_library_docs_section(library_docs)
-        
+
         assert "## Context7 Library Documentation" in formatted
         assert "### React Documentation" in formatted
         assert "### Fastapi Documentation" in formatted
@@ -136,19 +134,19 @@ class TestContext7Service:
         cache_key = "react_3-system-template"
         cache_file = temp_cache_dir / f"{cache_key}.md"
         cache_file.write_text("Cached React docs")
-        
+
         service.cache_index[cache_key] = {
             "timestamp": datetime.now().isoformat(),
             "library_id": "/react/react"
         }
         service._save_cache_index()
-        
+
         # Test enrichment
         prompt = "Build a system with <context7_docs></context7_docs>"
         previous_content = "Using React for frontend"
-        
+
         enriched = service.enrich_prompt(prompt, "3-system-template", previous_content)
-        
+
         assert "Cached React docs" in enriched
         assert "<context7_docs>" not in enriched
         mock_client_class.return_value.resolve_library_id.assert_not_called()
@@ -164,13 +162,13 @@ class TestContext7Service:
 
         # Replace the service's client with our mock
         service.client = mock_client
-        
+
         # Test enrichment
         prompt = "Build a system"
         previous_content = "Using Vue for frontend"
-        
+
         enriched = service.enrich_prompt(prompt, "3-system-template", previous_content)
-        
+
         assert "Fresh Vue docs" in enriched
         mock_client.resolve_library_id.assert_called_once_with("vue")
         mock_client.get_library_docs.assert_called_once()
@@ -179,7 +177,7 @@ class TestContext7Service:
         """Test context command output formatting."""
         detected_libs = ["react", "fastapi", "postgresql"]
         output = service.create_context_command_output("3-system-template", detected_libs)
-        
+
         assert "Context7 Library Detection" in output
         assert "react" in output
         assert "fastapi" in output
@@ -189,7 +187,7 @@ class TestContext7Service:
     def test_create_context_command_output_no_libs(self, service):
         """Test context command output with no libraries."""
         output = service.create_context_command_output("3-system-template", [])
-        
+
         assert "No libraries detected" in output
         assert "aisdlc context --libraries" in output
 
@@ -198,7 +196,7 @@ class TestContext7Service:
         # Test acquire and release lock
         service._acquire_lock()
         assert service.cache_lock_file.exists()
-        
+
         service._release_lock()
         # Lock file still exists but is unlocked
         assert service.cache_lock_file.exists()
@@ -206,7 +204,7 @@ class TestContext7Service:
     def test_library_patterns_compiled(self):
         """Test that library patterns are pre-compiled."""
         from ai_sdlc.services.context7_service import LIBRARY_PATTERNS
-        
+
         assert len(LIBRARY_PATTERNS) > 0
         for pattern in LIBRARY_PATTERNS:
             # Verify these are compiled regex objects

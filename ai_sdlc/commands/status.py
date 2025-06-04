@@ -1,8 +1,8 @@
 # ai_sdlc/commands/status.py
 """`aisdlc status` – show progress through lifecycle steps."""
 
-from ai_sdlc.utils import load_config, read_lock
 from ai_sdlc.types import ConfigDict, LockDict
+from ai_sdlc.utils import load_config, read_lock
 
 
 def run_status(args: list[str] | None = None) -> None:

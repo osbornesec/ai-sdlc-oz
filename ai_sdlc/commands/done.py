@@ -3,8 +3,8 @@
 import shutil
 import sys
 
-from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 from ai_sdlc.types import ConfigDict, LockDict
+from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
 
 def run_done(args: list[str] | None = None) -> None:

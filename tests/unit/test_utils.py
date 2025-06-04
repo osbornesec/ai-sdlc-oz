@@ -14,20 +14,20 @@ def test_slugify():
     assert utils.slugify("Special!@#Chars") == "special-chars"
     assert utils.slugify("Test123") == "test123"
     assert utils.slugify("unicode-café") == "unicode-cafe"
-    
+
     # Test error cases
     with pytest.raises(ValueError, match="Cannot slugify empty text"):
         utils.slugify("")
-    
+
     with pytest.raises(ValueError, match="Cannot slugify empty text"):
         utils.slugify("   ")
-    
+
     with pytest.raises(ValueError, match="contains no valid characters"):
         utils.slugify("!@#$%^&*()")
-    
+
     with pytest.raises(ValueError, match="contains no valid characters"):
         utils.slugify("---")
-        
+
     # Test edge cases
     assert utils.slugify("a") == "a"
     assert utils.slugify("1") == "1"
@@ -72,6 +72,7 @@ def test_load_config_corrupted(temp_project_dir: Path, mocker):
 
 
 def test_read_write_lock(temp_project_dir: Path, mocker):
+    """Test reading and writing lock files."""
     mocker.patch("ai_sdlc.utils.ROOT", temp_project_dir)
     lock_data = {"slug": "test-slug", "current": "01-idea"}
 

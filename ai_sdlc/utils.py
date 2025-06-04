@@ -29,7 +29,8 @@ ROOT = find_project_root()
 try:
     import tomllib as toml_lib  # Python 3.11+
 except ModuleNotFoundError:  # pragma: no cover – fallback for < 3.11
-    import tomli as toml_lib  # noqa: D401  # `uv pip install tomli`  # pyright: ignore[reportMissingImports]
+    # `uv pip install tomli`
+    import tomli as toml_lib  # noqa: D401  # pyright: ignore[reportMissingImports]
 
 
 def load_config() -> ConfigDict:
