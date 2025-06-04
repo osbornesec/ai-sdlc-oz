@@ -75,7 +75,9 @@ def validate_config(config_data: dict[str, Any]) -> ConfigDict:
     # Validate context7 config if present
     if "context7" in config_data:
         context7_config = config_data["context7"]
-        if context7_config is not None:  # Ensure context7_config is not None before validation
+        if (
+            context7_config is not None
+        ):  # Ensure context7_config is not None before validation
             if not isinstance(context7_config, dict):
                 errors.append("'context7' must be a dictionary")
             else:
@@ -90,15 +92,21 @@ def validate_config(config_data: dict[str, Any]) -> ConfigDict:
             errors.append("'ai_provider' must be a dictionary")
         else:
             # Validate 'name'
-            if "name" in ai_provider_config and not isinstance(ai_provider_config["name"], str):
+            if "name" in ai_provider_config and not isinstance(
+                ai_provider_config["name"], str
+            ):
                 errors.append("'ai_provider.name' must be a string")
 
             # Validate 'model'
-            if "model" in ai_provider_config and not isinstance(ai_provider_config["model"], str):
+            if "model" in ai_provider_config and not isinstance(
+                ai_provider_config["model"], str
+            ):
                 errors.append("'ai_provider.model' must be a string")
 
             # Validate 'api_key_env_var'
-            if "api_key_env_var" in ai_provider_config and not isinstance(ai_provider_config["api_key_env_var"], str):
+            if "api_key_env_var" in ai_provider_config and not isinstance(
+                ai_provider_config["api_key_env_var"], str
+            ):
                 errors.append("'ai_provider.api_key_env_var' must be a string")
 
             # Validate 'direct_api_calls'
@@ -121,11 +129,13 @@ def validate_config(config_data: dict[str, Any]) -> ConfigDict:
                 if not isinstance(timeout, int):
                     errors.append("'ai_provider.timeout_seconds' must be an integer")
                 elif timeout <= 0:
-                    errors.append("'ai_provider.timeout_seconds' must be a positive integer")
+                    errors.append(
+                        "'ai_provider.timeout_seconds' must be a positive integer"
+                    )
             # If timeout_seconds is not present, it will use the default from get_default_config or TypedDict default (if specified)
             # The requirement says "optional, defaults to 60". This default is handled by get_default_config.
 
-    else: # ai_provider section is missing
+    else:  # ai_provider section is missing
         # This case should ideally be handled by get_default_config merging,
         # but if a user manually creates a config and misses the whole section.
         # As per types.py, ConfigDict requires ai_provider.
@@ -139,7 +149,6 @@ def validate_config(config_data: dict[str, Any]) -> ConfigDict:
         # but might fail later if something strictly expects all keys from ConfigDict.
         # Let's add an error if ai_provider itself is missing, to align with types.py
         errors.append("Missing required section: 'ai_provider'")
-
 
     if errors:
         raise ConfigValidationError("; ".join(errors))
@@ -196,6 +205,6 @@ def get_default_config() -> ConfigDict:
             "model": "",
             "api_key_env_var": "",
             "direct_api_calls": False,
-            "timeout_seconds": 60
-        }
+            "timeout_seconds": 60,
+        },
     }
