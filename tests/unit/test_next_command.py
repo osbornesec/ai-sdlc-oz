@@ -199,10 +199,14 @@ def auto_mock_dependencies(request):  # `request` allows conditional mocking if 
 
 
 # Helper to run tests with properly patched ROOT
-def run_test_with_patched_root(root_path, auto_mock_dependencies, mock_config, mock_lock, test_func):
+def run_test_with_patched_root(
+    root_path, auto_mock_dependencies, mock_config, mock_lock, test_func
+):
     """Helper to run tests with ROOT properly patched to the actual path."""
-    with patch("ai_sdlc.utils.ROOT", root_path), \
-         patch("ai_sdlc.commands.next.ROOT", root_path):
+    with (
+        patch("ai_sdlc.utils.ROOT", root_path),
+        patch("ai_sdlc.commands.next.ROOT", root_path),
+    ):
         auto_mock_dependencies["load_config"].return_value = mock_config
         auto_mock_dependencies["read_lock"].return_value = mock_lock
         test_func()
@@ -225,9 +229,10 @@ def test_run_next_direct_api_call_success(
 ):
     root_path = setup_working_directory
 
-    with patch("ai_sdlc.utils.ROOT", root_path), \
-         patch("ai_sdlc.commands.next.ROOT", root_path):
-
+    with (
+        patch("ai_sdlc.utils.ROOT", root_path),
+        patch("ai_sdlc.commands.next.ROOT", root_path),
+    ):
         auto_mock_dependencies["load_config"].return_value = mock_config
         auto_mock_dependencies["read_lock"].return_value = mock_lock
 
@@ -236,12 +241,16 @@ def test_run_next_direct_api_call_success(
 
         # Set OPENAI_API_KEY_TEST_NEXT for this test environment
         with patch.dict(
-            os.environ, {mock_config["ai_provider"]["api_key_env_var"]: "fake_key_for_test"}
+            os.environ,
+            {mock_config["ai_provider"]["api_key_env_var"]: "fake_key_for_test"},
         ):
             run_next()
 
         captured = capsys.readouterr()
-        assert "🤖 Attempting to generate text using AI provider: openai..." in captured.out
+        assert (
+            "🤖 Attempting to generate text using AI provider: openai..."
+            in captured.out
+        )
         assert "✅ AI successfully generated content and saved to:" in captured.out
 
         next_step_file = (
@@ -407,9 +416,7 @@ def test_run_next_direct_api_calls_disabled(
     auto_mock_dependencies["write_lock"].assert_not_called()  # No advance
 
 
-@pytest.mark.parametrize(
-    "mock_config", ["mock_ai_provider_manual"], indirect=True
-)
+@pytest.mark.parametrize("mock_config", ["mock_ai_provider_manual"], indirect=True)
 def test_run_next_manual_provider(
     mock_config: ConfigDict,
     mock_lock: LockDict,
@@ -420,9 +427,10 @@ def test_run_next_manual_provider(
     root_path = setup_working_directory
 
     # Patch ROOT to be the actual path instead of using return_value
-    with patch("ai_sdlc.utils.ROOT", root_path), \
-         patch("ai_sdlc.commands.next.ROOT", root_path):
-
+    with (
+        patch("ai_sdlc.utils.ROOT", root_path),
+        patch("ai_sdlc.commands.next.ROOT", root_path),
+    ):
         auto_mock_dependencies["load_config"].return_value = mock_config
 
         auto_mock_dependencies["read_lock"].return_value = mock_lock
@@ -516,9 +524,7 @@ def test_run_next_step_file_already_exists(
 
 
 # Test for workflow completion
-@pytest.mark.parametrize(
-    "mock_config", ["mock_ai_provider_manual"], indirect=True
-)
+@pytest.mark.parametrize("mock_config", ["mock_ai_provider_manual"], indirect=True)
 def test_run_next_all_steps_complete(
     mock_config: ConfigDict,
     mock_lock: LockDict,
@@ -552,9 +558,7 @@ def test_run_next_all_steps_complete(
 
 
 # Test for missing previous step file
-@pytest.mark.parametrize(
-    "mock_config", ["mock_ai_provider_manual"], indirect=True
-)
+@pytest.mark.parametrize("mock_config", ["mock_ai_provider_manual"], indirect=True)
 def test_run_next_missing_prev_file(
     mock_config: ConfigDict,
     mock_lock: LockDict,
@@ -591,9 +595,7 @@ def test_run_next_missing_prev_file(
 
 
 # Test for missing prompt template file
-@pytest.mark.parametrize(
-    "mock_config", ["mock_ai_provider_manual"], indirect=True
-)
+@pytest.mark.parametrize("mock_config", ["mock_ai_provider_manual"], indirect=True)
 def test_run_next_missing_prompt_template_file(
     mock_config: ConfigDict,
     mock_lock: LockDict,

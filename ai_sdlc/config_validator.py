@@ -135,7 +135,6 @@ def validate_config(config_data: dict[str, Any]) -> ConfigDict:
             # If timeout_seconds is not present, it will use the default from get_default_config or TypedDict default (if specified)
             # The requirement says "optional, defaults to 60". This default is handled by get_default_config.
 
-
     if errors:
         raise ConfigValidationError("; ".join(errors))
 
