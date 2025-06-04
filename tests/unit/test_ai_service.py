@@ -187,19 +187,19 @@ def test_get_api_key_env_var_not_set(openai_provider_config: AiProviderConfig):
 # Since openai is imported inside the function, we mock sys.modules
 def test_generate_text_openai_success(openai_provider_config: AiProviderConfig):
     mock_openai_module = MockOpenAIModule()
-    
+
     with patch.dict('sys.modules', {'openai': mock_openai_module}):
         mock_openai_client_instance = MagicMock() # Mock the client instance
         mock_chat_completion = MagicMock()
         mock_chat_completion.message = MagicMock()
         mock_chat_completion.message.content = "Successfully generated text"
-        
+
         # Configure the 'create' method on the client instance's chat.completions attribute
         mock_openai_client_instance.chat.completions.create.return_value = MagicMock(choices=[mock_chat_completion])
-        
+
         # Now, we need `MockOpenAIModule.OpenAI` (the class) to return this `mock_openai_client_instance` when called.
         mock_openai_module.OpenAI = MagicMock(return_value=mock_openai_client_instance)
-        
+
         response = generate_text_openai(
             prompt="A test prompt",
             model=openai_provider_config["model"],
@@ -216,7 +216,7 @@ def test_generate_text_openai_success(openai_provider_config: AiProviderConfig):
 
 def test_generate_text_openai_empty_content(openai_provider_config: AiProviderConfig):
     mock_openai_module = MockOpenAIModule()
-    
+
     with patch.dict('sys.modules', {'openai': mock_openai_module}):
         mock_openai_client_instance = MagicMock()
         mock_chat_completion = MagicMock()
@@ -224,7 +224,7 @@ def test_generate_text_openai_empty_content(openai_provider_config: AiProviderCo
         mock_chat_completion.message.content = None # Simulate empty content from API
         mock_openai_client_instance.chat.completions.create.return_value = MagicMock(choices=[mock_chat_completion])
         mock_openai_module.OpenAI = MagicMock(return_value=mock_openai_client_instance)
-        
+
         with pytest.raises(OpenAIError, match="OpenAI API returned an empty message content."):
             generate_text_openai(
                 "Prompt for empty",
@@ -248,14 +248,14 @@ def test_generate_text_openai_standard_exceptions(
     openai_exception_class_name: str, expected_message_snippet: str
 ):
     mock_openai_module = MockOpenAIModule()
-    
+
     with patch.dict('sys.modules', {'openai': mock_openai_module}):
         ExceptionToRaise = getattr(mock_openai_module, openai_exception_class_name)
-        
+
         mock_openai_client_instance = MagicMock()
         mock_openai_client_instance.chat.completions.create.side_effect = ExceptionToRaise("Mocked API error details")
         mock_openai_module.OpenAI = MagicMock(return_value=mock_openai_client_instance)
-        
+
         with pytest.raises(OpenAIError, match=expected_message_snippet):
             generate_text_openai(
                 "A prompt",
@@ -266,20 +266,20 @@ def test_generate_text_openai_standard_exceptions(
 
 def test_generate_text_openai_apistatuserror(openai_provider_config: AiProviderConfig):
     mock_openai_module = MockOpenAIModule()
-    
+
     with patch.dict('sys.modules', {'openai': mock_openai_module}):
         mock_api_response = MagicMock()
         mock_api_response.status_code = 403 # Example: Forbidden
-        
+
         # Use the APIStatusError from our MockOpenAIModule for raising
         status_error_instance = mock_openai_module.APIStatusError(
             "Mocked API Status Error content", response=mock_api_response
         )
-        
+
         mock_openai_client_instance = MagicMock()
         mock_openai_client_instance.chat.completions.create.side_effect = status_error_instance
         mock_openai_module.OpenAI = MagicMock(return_value=mock_openai_client_instance)
-        
+
         with pytest.raises(OpenAIError, match=r"OpenAI API Error \(Status 403\):"):
             generate_text_openai(
                 "A prompt",
@@ -290,12 +290,12 @@ def test_generate_text_openai_apistatuserror(openai_provider_config: AiProviderC
 
 def test_generate_text_openai_unexpected_exception(openai_provider_config: AiProviderConfig):
     mock_openai_module = MockOpenAIModule()
-    
+
     with patch.dict('sys.modules', {'openai': mock_openai_module}):
         mock_openai_client_instance = MagicMock()
         mock_openai_client_instance.chat.completions.create.side_effect = ValueError("Completely unexpected error") # e.g. a ValueError
         mock_openai_module.OpenAI = MagicMock(return_value=mock_openai_client_instance)
-        
+
         with pytest.raises(OpenAIError, match="An unexpected error occurred with OpenAI: Completely unexpected error"):
             generate_text_openai(
                 "A prompt",
@@ -307,7 +307,7 @@ def test_generate_text_openai_unexpected_exception(openai_provider_config: AiPro
 # Tests for generate_text_anthropic()
 def test_generate_text_anthropic_success(anthropic_provider_config: AiProviderConfig):
     mock_anthropic_module = MockAnthropicModule()
-    
+
     with patch.dict('sys.modules', {'anthropic': mock_anthropic_module}):
         mock_anthropic_client_instance = MagicMock()
         mock_message_response = MagicMock()
@@ -316,10 +316,10 @@ def test_generate_text_anthropic_success(anthropic_provider_config: AiProviderCo
         mock_text_block = MagicMock()
         mock_text_block.text = "Successfully generated text from Anthropic"
         mock_message_response.content = [mock_text_block]
-        
+
         mock_anthropic_client_instance.messages.create.return_value = mock_message_response
         mock_anthropic_module.Anthropic = MagicMock(return_value=mock_anthropic_client_instance)
-        
+
         response = generate_text_anthropic(
             prompt="A test prompt for Anthropic",
             model=anthropic_provider_config["model"],
@@ -336,7 +336,7 @@ def test_generate_text_anthropic_success(anthropic_provider_config: AiProviderCo
 
 def test_generate_text_anthropic_empty_content(anthropic_provider_config: AiProviderConfig):
     mock_anthropic_module = MockAnthropicModule()
-    
+
     with patch.dict('sys.modules', {'anthropic': mock_anthropic_module}):
         mock_anthropic_client_instance = MagicMock()
         mock_message_response = MagicMock()
@@ -345,23 +345,23 @@ def test_generate_text_anthropic_empty_content(anthropic_provider_config: AiProv
         mock_message_response.content = [mock_text_block]
         mock_anthropic_client_instance.messages.create.return_value = mock_message_response
         mock_anthropic_module.Anthropic = MagicMock(return_value=mock_anthropic_client_instance)
-        
+
         with pytest.raises(AnthropicError, match="Anthropic API returned empty message content."):
             generate_text_anthropic("Prompt", anthropic_provider_config["model"], "key", 60)
 
 def test_generate_text_anthropic_unexpected_content_structure(anthropic_provider_config: AiProviderConfig):
     mock_anthropic_module = MockAnthropicModule()
-    
+
     with patch.dict('sys.modules', {'anthropic': mock_anthropic_module}):
         mock_anthropic_client_instance = MagicMock()
         mock_message_response_empty_content_list = MagicMock()
         mock_message_response_empty_content_list.content = [] # Empty list
         mock_anthropic_client_instance.messages.create.return_value = mock_message_response_empty_content_list
         mock_anthropic_module.Anthropic = MagicMock(return_value=mock_anthropic_client_instance)
-        
+
         with pytest.raises(AnthropicError, match="Anthropic API returned unexpected or empty content structure."):
             generate_text_anthropic("Prompt", anthropic_provider_config["model"], "key", 60)
-        
+
         mock_message_response_no_text_attr = MagicMock()
         mock_non_text_block = MagicMock(spec=[]) # A block that doesn't have 'text'
         mock_message_response_no_text_attr.content = [mock_non_text_block]
@@ -384,20 +384,20 @@ def test_generate_text_anthropic_standard_exceptions(
     anthropic_exception_class_name: str, expected_message_snippet: str
 ):
     mock_anthropic_module = MockAnthropicModule()
-    
+
     with patch.dict('sys.modules', {'anthropic': mock_anthropic_module}):
         ExceptionToRaise = getattr(mock_anthropic_module, anthropic_exception_class_name)
-        
+
         mock_anthropic_client_instance = MagicMock()
         mock_anthropic_client_instance.messages.create.side_effect = ExceptionToRaise("Mocked Anthropic API error")
         mock_anthropic_module.Anthropic = MagicMock(return_value=mock_anthropic_client_instance)
-        
+
         with pytest.raises(AnthropicError, match=expected_message_snippet):
             generate_text_anthropic("Prompt", anthropic_provider_config["model"], "key", 60)
 
 def test_generate_text_anthropic_apistatuserror(anthropic_provider_config: AiProviderConfig):
     mock_anthropic_module = MockAnthropicModule()
-    
+
     with patch.dict('sys.modules', {'anthropic': mock_anthropic_module}):
         mock_api_response = MagicMock()
         mock_api_response.status_code = 401
@@ -407,35 +407,35 @@ def test_generate_text_anthropic_apistatuserror(anthropic_provider_config: AiPro
         mock_anthropic_client_instance = MagicMock()
         mock_anthropic_client_instance.messages.create.side_effect = status_error_instance
         mock_anthropic_module.Anthropic = MagicMock(return_value=mock_anthropic_client_instance)
-        
+
         with pytest.raises(AnthropicError, match=r"Anthropic API Error \(Status 401\):"):
             generate_text_anthropic("Prompt", anthropic_provider_config["model"], "key", 60)
 
 def test_generate_text_anthropic_unexpected_exception(anthropic_provider_config: AiProviderConfig):
     mock_anthropic_module = MockAnthropicModule()
-    
+
     with patch.dict('sys.modules', {'anthropic': mock_anthropic_module}):
         mock_anthropic_client_instance = MagicMock()
         mock_anthropic_client_instance.messages.create.side_effect = TypeError("Unexpected TypeError from Anthropic client")
         mock_anthropic_module.Anthropic = MagicMock(return_value=mock_anthropic_client_instance)
-        
+
         with pytest.raises(AnthropicError, match="An unexpected error occurred with Anthropic: Unexpected TypeError"):
             generate_text_anthropic("Prompt", anthropic_provider_config["model"], "key", 60)
 
 # Test with custom max_tokens
 def test_generate_text_anthropic_custom_max_tokens(anthropic_provider_config: AiProviderConfig):
     mock_anthropic_module = MockAnthropicModule()
-    
+
     with patch.dict('sys.modules', {'anthropic': mock_anthropic_module}):
         mock_anthropic_client_instance = MagicMock()
         mock_message_response = MagicMock()
         mock_text_block = MagicMock()
         mock_text_block.text = "Generated with custom max_tokens"
         mock_message_response.content = [mock_text_block]
-        
+
         mock_anthropic_client_instance.messages.create.return_value = mock_message_response
         mock_anthropic_module.Anthropic = MagicMock(return_value=mock_anthropic_client_instance)
-        
+
         response = generate_text_anthropic(
             prompt="Test prompt",
             model=anthropic_provider_config["model"],
@@ -443,7 +443,7 @@ def test_generate_text_anthropic_custom_max_tokens(anthropic_provider_config: Ai
             timeout_seconds=60,
             max_tokens=2048
         )
-        
+
         assert response == "Generated with custom max_tokens"
         mock_anthropic_client_instance.messages.create.assert_called_once_with(
             model=anthropic_provider_config["model"],
@@ -544,12 +544,12 @@ def test_generate_text_anthropic_with_max_tokens_config(
 ):
     anthropic_config_with_max_tokens = anthropic_provider_config.copy()
     anthropic_config_with_max_tokens["max_tokens"] = 2048
-    
+
     mock_get_api_key.return_value = "api_key"
     mock_generate_text_anthropic_func.return_value = "Result"
-    
+
     result = generate_text("Prompt", anthropic_config_with_max_tokens)
-    
+
     assert result == "Result"
     mock_generate_text_anthropic_func.assert_called_once_with(
         "Prompt",
@@ -671,18 +671,18 @@ def test_generate_text_openai_apistatuserror_response_missing_status_code(
     openai_provider_config: AiProviderConfig
 ):
     mock_openai_module = MockOpenAIModule()
-    
+
     with patch.dict('sys.modules', {'openai': mock_openai_module}):
         mock_response_no_status = MagicMock(spec=[]) # No attributes, so getattr(response, 'status_code', default) will use default.
-        
+
         status_error_instance = mock_openai_module.APIStatusError(
             "Error with response lacking status_code", response=mock_response_no_status
         )
-        
+
         mock_openai_client_instance = MagicMock()
         mock_openai_client_instance.chat.completions.create.side_effect = status_error_instance
         mock_openai_module.OpenAI = MagicMock(return_value=mock_openai_client_instance)
-        
+
         # MockOpenAI.APIStatusError defaults status_code to 500 if not found on response
         with pytest.raises(OpenAIError, match=r"OpenAI API Error \(Status 500\):"):
             generate_text_openai(

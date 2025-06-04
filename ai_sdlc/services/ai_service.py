@@ -4,6 +4,7 @@ import os
 
 from ..types import AiProviderConfig
 
+
 # Define custom exceptions for the AI service
 class AiServiceError(Exception):
     """Base class for AI service errors."""
