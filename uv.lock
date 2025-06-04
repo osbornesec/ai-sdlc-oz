@@ -12,6 +12,7 @@ version = "0.7.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
+    { name = "filelock" },
 ]
 
 [package.optional-dependencies]
@@ -26,6 +27,7 @@ dev = [
     { name = "pytest-mock" },
     { name = "ruff" },
     { name = "safety" },
+    { name = "filelock" },
     { name = "twine" },
 ]
 
@@ -49,6 +51,7 @@ requires-dist = [
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = ">=3.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.0.292" },
     { name = "safety", marker = "extra == 'dev'", specifier = ">=2.0.0" },
+    { name = "filelock", marker = "extra == 'dev'", specifier = ">=3.12" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=1.2.0" },
     { name = "twine", marker = "extra == 'dev'", specifier = ">=4.0.0" },
 ]

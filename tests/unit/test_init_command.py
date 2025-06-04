@@ -8,26 +8,26 @@ def test_run_init(temp_project_dir: Path, mocker):
     """Test init command creates actual files and directories."""
     # Patch ROOT to point to our temp directory
     mocker.patch("ai_sdlc.utils.ROOT", temp_project_dir)
-    
+
     # Change to temp directory to simulate real usage
     original_cwd = os.getcwd()
     os.chdir(temp_project_dir)
-    
+
     try:
         # Run the actual init command
         init.run_init()
-        
+
         # Verify actual files/directories were created
         assert (temp_project_dir / ".aisdlc").exists(), ".aisdlc config file should exist"
         assert (temp_project_dir / "prompts").is_dir(), "prompts directory should exist"
         assert (temp_project_dir / "doing").is_dir(), "doing directory should exist"
         assert (temp_project_dir / "done").is_dir(), "done directory should exist"
         assert (temp_project_dir / ".aisdlc.lock").exists(), "lock file should exist"
-        
+
         # Verify prompt files were created
         expected_prompts = [
             "0-idea.prompt.yml",
-            "1-prd.prompt.yml", 
+            "1-prd.prompt.yml",
             "2-prd-plus.prompt.yml",
             "3-system-template.prompt.yml",
             "4-systems-patterns.prompt.yml",
@@ -35,21 +35,21 @@ def test_run_init(temp_project_dir: Path, mocker):
             "6-tasks-plus.prompt.yml",
             "7-tests.prompt.yml"
         ]
-        
+
         for prompt_file in expected_prompts:
             prompt_path = temp_project_dir / "prompts" / prompt_file
             assert prompt_path.exists(), f"Prompt file {prompt_file} should exist"
             assert prompt_path.stat().st_size > 0, f"Prompt file {prompt_file} should not be empty"
-        
+
         # Verify lock file content
         lock_content = (temp_project_dir / ".aisdlc.lock").read_text()
         assert lock_content.strip() == "{}", "Lock file should contain empty JSON object"
-        
+
         # Verify .aisdlc config content has expected structure
         config_content = (temp_project_dir / ".aisdlc").read_text()
         assert "steps" in config_content, "Config should contain steps"
         assert "active_dir" in config_content, "Config should contain active_dir"
         assert "done_dir" in config_content, "Config should contain done_dir"
-        
+
     finally:
         os.chdir(original_cwd)

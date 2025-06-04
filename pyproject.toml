@@ -41,6 +41,7 @@ classifiers = [
 dependencies = [
     "tomli >= 1.2.0 ; python_version < '3.11'",
     "httpx >= 0.25.0",
+    "filelock>=3.12",
 ]
 
 [project.urls]
@@ -73,6 +74,9 @@ dev = [
     # Build tools
     "build>=0.10.0",
     "twine>=4.0.0",
+
+    # Libraries used during development
+    "filelock>=3.12",
 ]
 
 # ────────────────────────────────────────────────────────────────
