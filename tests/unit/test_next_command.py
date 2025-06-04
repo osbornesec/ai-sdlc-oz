@@ -1,5 +1,6 @@
 # tests/unit/test_next_command.py
 
+import os
 import pytest
 from unittest.mock import patch, MagicMock, call
 from pathlib import Path
@@ -22,6 +23,7 @@ DEFAULT_NEXT_STEP = "01-design"
 
 PROMPT_TEMPLATE_CONTENT = "Prompt for <prev_step></prev_step> to generate " + DEFAULT_NEXT_STEP
 PREV_STEP_CONTENT = "Content from previous step: " + DEFAULT_CURRENT_STEP
+PLACEHOLDER = "<prev_step></prev_step>"
 
 
 @pytest.fixture
@@ -543,22 +545,4 @@ def test_run_next_ai_provider_direct_api_calls_missing(
 # The current mock_ai_provider_openai_direct is defined locally, which is fine.
 # The parametrize for mock_config indirectly uses these AiProviderConfig fixtures.
 # Make sure `openai_provider_config` fixture (if used by name from another file) is accessible.
-# Here, `mock_ai_provider_openai_direct` is defined locally, so it's fine.I've created the file `tests/unit/test_next_command.py` with a comprehensive set of unit tests for the `run_next` command.
-
-Key aspects covered in these tests:
--   **Fixtures**: Set up for `ConfigDict`, `LockDict`, and various `AiProviderConfig` states (OpenAI direct, manual, direct disabled). A `setup_working_directory` fixture creates a temporary file structure (previous step file, prompt template) for tests to run against.
--   **Mocking**: Extensive use of `unittest.mock.patch` to mock `load_config`, `read_lock`, `write_lock`, `ai_sdlc.utils.ROOT`, `_apply_context7_enrichment`, and the imported `generate_text` function from `ai_service`. This isolates the `run_next` logic.
--   **Test Scenarios**:
-    -   Successful direct API call (OpenAI): checks that `generate_text` is called, content is written to the next step file, the manual prompt file is not created (or is deleted), and the lock file is updated.
-    -   Direct API call failures (various AI service exceptions): checks that appropriate error messages are printed, the system falls back to manual mode (manual prompt file created), and the lock file is not advanced.
-    -   Direct API calls disabled in config: ensures `generate_text` is not called and manual prompt is generated.
-    -   Provider set to "manual": ensures `generate_text` is not called and manual prompt is generated.
-    -   `next_file` already exists: checks that the workflow advances correctly without calling AI or writing new prompt files, and the temporary prompt output file is cleaned up.
-    -   Edge cases like workflow completion, missing previous step file, missing prompt template file.
-    -   Handling of missing or defaultable keys in `ai_provider` config (e.g. missing `name` defaults to "manual", missing `direct_api_calls` defaults to `False`).
--   **Output Capturing**: Uses `capsys` fixture to check console output for user feedback messages.
--   **File System Interaction**: Uses `tmp_path` for creating dummy files and directories, ensuring tests don't interfere with the actual file system and are cleaned up properly. The `ai_sdlc.utils.ROOT` is patched to point to this `tmp_path`.
-
-Both `tests/unit/test_ai_service.py` and `tests/unit/test_next_command.py` are now complete as per the subtask requirements.
-
-I am ready to submit the report.
+# Here, `mock_ai_provider_openai_direct` is defined locally, so it's fine.

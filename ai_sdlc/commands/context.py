@@ -5,6 +5,7 @@ from __future__ import annotations
 import sys
 
 from ai_sdlc.services.context7_service import Context7Service
+from ai_sdlc.types import ConfigDict, LockDict
 from ai_sdlc.utils import ROOT, load_config, read_lock
 
 
@@ -18,8 +19,8 @@ def run_context(args: list[str] | None) -> None:
     Raises:
         SystemExit: If no active workstream or invalid arguments
     """
-    config = load_config()
-    lock = read_lock()
+    config: ConfigDict = load_config()
+    lock: LockDict = read_lock()
 
     if not lock:
         print("❌  No active workstream. Run `aisdlc new` first.")
@@ -42,9 +43,11 @@ def run_context(args: list[str] | None) -> None:
             for lib in lib_list:
                 lib = lib.strip()
                 # Validate library name (alphanumeric, dash, underscore)
-                if not lib or not all(c.isalnum() or c in '-_' for c in lib):
+                if not lib or not all(c.isalnum() or c in "-_" for c in lib):
                     print(f"❌  Error: Invalid library name: {lib}")
-                    print("   Library names must contain only letters, numbers, hyphens, and underscores")
+                    print(
+                        "   Library names must contain only letters, numbers, hyphens, and underscores"
+                    )
                     sys.exit(1)
                 if len(lib) > 50:
                     print(f"❌  Error: Library name too long: {lib}")
@@ -74,6 +77,7 @@ def run_context(args: list[str] | None) -> None:
     if clear_cache:
         if cache_dir.exists():
             import shutil
+
             shutil.rmtree(cache_dir)
             cache_dir.mkdir()
         print("✅  Context7 cache cleared.")
@@ -91,6 +95,9 @@ def run_context(args: list[str] | None) -> None:
         return
 
     # Get current step and content
+    if "slug" not in lock or "current" not in lock:
+        print("❌  Invalid lock file. Run 'aisdlc status' to regenerate.")
+        sys.exit(1)
     slug = lock["slug"]
     current_step = lock["current"]
     steps = config["steps"]
@@ -131,6 +138,7 @@ def run_context(args: list[str] | None) -> None:
 def main() -> None:
     """Entry point for testing."""
     import sys
+
     run_context(sys.argv[1:])
 
 

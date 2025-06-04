@@ -1,0 +1,112 @@
+name: Dependency Update
+
+on:
+  schedule:
+    # Run at 3 AM UTC every Wednesday
+    - cron: '0 3 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Update dependencies
+      run: |
+        # Update all dependencies to their latest compatible versions
+        uv lock --upgrade
+        
+        # Check if there are changes
+        if git diff --quiet uv.lock; then
+          echo "No dependency updates available"
+          echo "NO_UPDATES=true" >> $GITHUB_ENV
+        else
+          echo "Dependencies updated"
+          echo "NO_UPDATES=false" >> $GITHUB_ENV
+        fi
+    
+    - name: Run tests with updated dependencies
+      if: env.NO_UPDATES == 'false'
+      run: |
+        uv sync --all-extras --dev
+        uv run pytest tests/ -v
+    
+    - name: Create Pull Request
+      if: env.NO_UPDATES == 'false'
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update dependencies"
+        title: "chore: update dependencies"
+        body: |
+          ## Automated Dependency Update
+          
+          This PR updates the project dependencies to their latest compatible versions.
+          
+          ### Changes
+          - Updated `uv.lock` with latest dependency versions
+          - All tests have been run and passed
+          
+          ### Review Checklist
+          - [ ] Review the dependency changes in `uv.lock`
+          - [ ] Check for any breaking changes in updated packages
+          - [ ] Verify that the application still works as expected
+          
+          ---
+          *This PR was automatically created by the dependency update workflow.*
+        branch: dependency-updates
+        delete-branch: true
+        labels: |
+          dependencies
+          automated
+        assignees: ${{ github.repository_owner }}
+
+  check-outdated:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      run: uv python install 3.11
+    
+    - name: Check for outdated packages
+      run: |
+        # Install dependencies
+        uv sync --all-extras --dev
+        
+        # Check outdated packages and create report
+        echo "# Outdated Dependencies Report" > outdated-report.md
+        echo "" >> outdated-report.md
+        echo "Generated on: $(date)" >> outdated-report.md
+        echo "" >> outdated-report.md
+        
+        # Use pip list to check outdated packages
+        echo "## Outdated Packages" >> outdated-report.md
+        uv pip list --outdated >> outdated-report.md || echo "No outdated packages found" >> outdated-report.md
+    
+    - name: Upload outdated report
+      uses: actions/upload-artifact@v4
+      with:
+        name: outdated-dependencies-report
+        path: outdated-report.md
+        retention-days: 7

@@ -260,40 +260,14 @@ You might want to add these lines to your shell's startup file (e.g., `.bashrc`,
 
 The AI-SDLC workflow follows an 8-step process from idea to tests:
 
-```mermaid
-flowchart TD
-    I[00-idea]-->P1[01-prd]-->P2[02-prd-plus]-->A[03-system-template]
-    A-->SP[04-systems-patterns]-->T[05-tasks]-->TP[06-tasks-plus]-->TESTS[07-tests]
-
-    %% AI interaction for steps 0-4 (idea, prd, prd-plus, arch, patterns)
-    INTERACTIVE_AI[💬 AI Interaction<br/>(Manual Prompt OR Direct API Call)]
-    I -.-> INTERACTIVE_AI
-    P1 -.-> INTERACTIVE_AI
-    P2 -.-> INTERACTIVE_AI
-    A -.-> INTERACTIVE_AI
-    SP -.-> INTERACTIVE_AI
-    INTERACTIVE_AI -.-> I
-    INTERACTIVE_AI -.-> P1
-    INTERACTIVE_AI -.-> P2
-    INTERACTIVE_AI -.-> A
-    INTERACTIVE_AI -.-> SP
-
-    %% Step 05-tasks (T) can also use AI for drafting or review
-    T -.-> INTERACTIVE_AI
-    INTERACTIVE_AI -.-> T
-
-    %% AI processing for steps 6-7 (tasks-plus, tests)
-    AUTOMATED_AI[🤖 AI Processing<br/>(Manual Prompt OR Direct API Call)]
-    TP -.-> AUTOMATED_AI
-    TESTS -.-> AUTOMATED_AI
-    AUTOMATED_AI -.-> TP  // Link for potential regeneration/iteration
-    AUTOMATED_AI -.-> TESTS // Link for potential regeneration/iteration
-
-    classDef stepStyle fill:#ECECFF,stroke:#999,stroke-width:2px,color:#000
-    class I,P1,P2,A,SP,T,TP,TESTS stepStyle
-    classDef aiNodeStyle fill:#DFFFEF,stroke:#999,stroke-width:2px,color:#000
-    class INTERACTIVE_AI,AUTOMATED_AI aiNodeStyle
-```
+1. **Idea** - Capture and refine your initial concept
+2. **PRD** - Create product requirements document
+3. **PRD Plus** - Enhance requirements with technical details
+4. **Architecture** - Design system architecture
+5. **System Patterns** - Define implementation patterns
+6. **Tasks** - Break down implementation into tasks
+7. **Tasks Plus** - Review and refine task list
+8. **Tests** - Generate comprehensive test suite
 
 ### 🎯 Workflow Modes
 
@@ -586,18 +560,28 @@ Integration tests spin up a temp project dir and exercise the CLI flow.
 
 ## 🗺️ Roadmap
 
-### Planned Features
+### ✅ Recently Completed
 
+- [x] **Context7 MCP Integration** - Library documentation in prompts
+- [x] **GitHub Actions CI/CD** - Automated testing and security scanning
+- [x] **CodeRabbit Integration** - AI-powered code reviews
+- [x] **Multi-OS Testing** - Windows, macOS, and Linux support
+- [x] **Comprehensive Type Coverage** - Full Pyright/mypy type checking
 - [x] **Enhanced AI provider integrations** - *v0.8.0: Support for direct API calls to OpenAI and Anthropic Claude added. Configuration allows specifying provider, model, API key (via env var), and timeout.*
+
+### 🚧 In Progress
+
 - [ ] **Pluggable AI providers** – Extend direct API calls to robustly support other models/providers like Google Gemini, etc. This may involve more sophisticated provider-specific handling beyond the current generic setup.
+
+### 📋 Planned Features
+
 - [ ] **09-release-plan** step (CI/CD & deployment playbook)
 - [ ] **Context-window management** (summaries / embeddings for large projects)
 - [ ] **Repomix integration** for giant monorepos
 - [ ] **Template customization** - custom prompt templates per project
 - [ ] **Parallel workflows** - multiple features in development simultaneously
 
-
-### Future Considerations
+### 💭 Future Considerations
 
 - Web UI for workflow visualization
 - Team collaboration features

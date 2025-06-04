@@ -3,6 +3,7 @@
 import shutil
 import sys
 
+from ai_sdlc.types import ConfigDict, LockDict
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
 
@@ -15,11 +16,14 @@ def run_done(args: list[str] | None = None) -> None:
     Raises:
         SystemExit: If filesystem operations fail
     """
-    conf = load_config()
+    conf: ConfigDict = load_config()
     steps = conf["steps"]
-    lock = read_lock()
+    lock: LockDict = read_lock()
     if not lock:
         print("❌  No active workstream.")
+        return
+    if "slug" not in lock or "current" not in lock:
+        print("❌  Invalid lock file. Run 'aisdlc status' to regenerate.")
         return
     slug = lock["slug"]
     if lock["current"] != steps[-1]:

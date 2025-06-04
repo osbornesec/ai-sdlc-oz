@@ -1,0 +1,29 @@
+id: require-error-handling
+language: python
+message: "API calls and file operations should be wrapped in try-except blocks"
+rule:
+  any:
+    - pattern: |
+        $RESPONSE = $OBJ.$METHOD($$$ARGS)
+      inside:
+        not:
+          kind: try_statement
+      constraints:
+        METHOD:
+          regex: "^(get|post|put|patch|delete|request)$"
+    - pattern: |
+        open($$$ARGS)
+      inside:
+        not:
+          any:
+            - kind: try_statement
+            - kind: with_statement
+    - pattern: |
+        $OBJ.read()
+      inside:
+        not:
+          kind: try_statement
+      constraints:
+        OBJ:
+          regex: ".*file.*|.*stream.*"
+severity: warning

@@ -9,6 +9,7 @@ from .types import ConfigDict
 
 class ConfigValidationError(Exception):
     """Raised when configuration validation fails."""
+
     pass
 
 
@@ -53,7 +54,9 @@ def validate_config(config_data: dict[str, Any]) -> ConfigDict:
                 elif not step.strip():
                     errors.append(f"Step {i} cannot be empty")
                 elif not step.startswith(f"{i:02d}-"):
-                    errors.append(f"Step {i} must start with '{i:02d}-' (got: '{step}')")
+                    errors.append(
+                        f"Step {i} must start with '{i:02d}-' (got: '{step}')"
+                    )
 
     # Validate directory fields
     dir_fields = ["active_dir", "done_dir", "prompt_dir"]
@@ -65,7 +68,9 @@ def validate_config(config_data: dict[str, Any]) -> ConfigDict:
             elif not value.strip():
                 errors.append(f"'{field}' cannot be empty")
             elif "/" in value or "\\" in value:
-                errors.append(f"'{field}' must be a simple directory name (no path separators)")
+                errors.append(
+                    f"'{field}' must be a simple directory name (no path separators)"
+                )
 
     # Validate context7 config if present
     if "context7" in config_data:
@@ -180,14 +185,12 @@ def get_default_config() -> ConfigDict:
             "04-systems-patterns",
             "05-tasks",
             "06-tasks-plus",
-            "07-tests"
+            "07-tests",
         ],
         "active_dir": "doing",
         "done_dir": "done",
         "prompt_dir": "prompts",
-        "context7": {
-            "enabled": True
-        },
+        "context7": {"enabled": True},
         "ai_provider": {
             "name": "manual",
             "model": "",
