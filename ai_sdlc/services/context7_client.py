@@ -272,7 +272,10 @@ class Context7Client:
                 "id": 1,
             }
 
-            headers: dict[str, str] = {"Content-Type": "application/json", "MCP-Session-Id": session_id}
+            headers: dict[str, str] = {
+                "Content-Type": "application/json",
+                "MCP-Session-Id": session_id,
+            }
             if self.api_key:
                 headers["Authorization"] = f"Bearer {self.api_key}"
 

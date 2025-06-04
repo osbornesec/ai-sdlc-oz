@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Any
 
 from ai_sdlc.services.context7_service import Context7Service
 from ai_sdlc.types import ConfigDict, LockDict
