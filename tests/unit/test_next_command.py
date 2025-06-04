@@ -3,18 +3,18 @@
 import os
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from ai_sdlc.commands.next import run_next
-from ai_sdlc.types import ConfigDict, LockDict, AiProviderConfig
 from ai_sdlc.services.ai_service import (
     AiServiceError,
     ApiKeyMissingError,
-    UnsupportedProviderError,
     OpenAIError,
+    UnsupportedProviderError,
 )
+from ai_sdlc.types import AiProviderConfig, ConfigDict, LockDict
 
 # Default values for fixtures
 DEFAULT_SLUG = "test-project"
