@@ -1,10 +1,11 @@
 # tests/unit/test_next_command.py
 
 import os
-import pytest
-from unittest.mock import patch, MagicMock, call
-from pathlib import Path
 import sys
+from pathlib import Path
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from ai_sdlc.commands.next import run_next
 from ai_sdlc.types import ConfigDict, LockDict, AiProviderConfig
