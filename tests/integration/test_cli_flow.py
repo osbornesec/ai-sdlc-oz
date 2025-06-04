@@ -1,3 +1,6 @@
+# pyright: reportMissingImports=false
+"""End-to-end CLI flow tests."""
+
 import json
 import subprocess
 from pathlib import Path
@@ -66,7 +69,8 @@ def test_full_lifecycle_flow(temp_project_dir: Path, mocker):
     try:
         import tomllib as toml_loader  # Python 3.11+
     except ModuleNotFoundError:
-        import tomli as toml_loader  # Fallback for older Python
+        # Fallback for older Python
+        import tomli as toml_loader  # pyright: ignore[reportMissingImports]
 
     aisdlc_config_content = (temp_project_dir / ".aisdlc").read_text()
     aisdlc_config = toml_loader.loads(aisdlc_config_content)

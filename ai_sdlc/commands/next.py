@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 from ai_sdlc.services.context7_service import Context7Service
+from ai_sdlc.types import ConfigDict, LockDict
 from ai_sdlc.utils import ROOT, load_config, read_lock, write_lock
 
 PLACEHOLDER = "<prev_step></prev_step>"
 
 
-def _validate_required_files(prev_file: Path, prompt_file: Path, prev_step: str, next_step: str, conf: dict[str, Any]) -> None:
+def _validate_required_files(
+    prev_file: Path, prompt_file: Path, prev_step: str, next_step: str, conf: ConfigDict
+) -> None:
     """Validate that required files exist."""
     if not prev_file.exists():
         print(f"❌ Error: The previous step's output file '{prev_file}' is missing.")
@@ -38,30 +41,42 @@ def _read_and_merge_content(prev_file: Path, prompt_file: Path) -> str:
     return prompt_template_content.replace(PLACEHOLDER, prev_step_content)
 
 
-def _apply_context7_enrichment(conf: dict[str, Any], merged_prompt: str, workdir: Path,
-                               steps: list[str], idx: int, slug: str, next_step: str) -> str:
+@dataclass
+class Context7Config:
+    """Configuration for Context7 enrichment."""
+    conf: ConfigDict
+    workdir: Path
+    steps: list[str]
+    idx: int
+    slug: str
+    next_step: str
+
+
+def _apply_context7_enrichment(config: Context7Config, merged_prompt: str) -> str:
     """Apply Context7 enrichment if enabled."""
-    context7_enabled = conf.get("context7", {}).get("enabled", True)  # Default to enabled
+    context7_cfg = config.conf.get("context7")
+    context7_enabled = True if context7_cfg is None else context7_cfg.get("enabled", True)
     if not context7_enabled:
         return merged_prompt
 
     print("📚  Enriching prompt with Context7 documentation...")
 
     # Initialize Context7 service
-    cache_dir = ROOT / ".context7_cache"
-    context7 = Context7Service(cache_dir)
+    context7 = Context7Service(ROOT / ".context7_cache")
 
     # Read all previous content for better context
     all_content = []
-    for i in range(idx + 1):
-        step_file = workdir / f"{steps[i]}-{slug}.md"
+    for i in range(config.idx + 1):
+        step_file = config.workdir / f"{config.steps[i]}-{config.slug}.md"
         if step_file.exists():
             all_content.append(step_file.read_text())
 
     combined_content = "\n\n".join(all_content)
 
     # Enrich the prompt with library documentation
-    enriched_prompt = context7.enrich_prompt(merged_prompt, next_step, combined_content)
+    enriched_prompt = context7.enrich_prompt(
+        merged_prompt, config.next_step, combined_content
+    )
 
     # Show detected libraries
     detected_libs = context7.extract_libraries_from_text(combined_content)
@@ -89,7 +104,7 @@ def _write_prompt_and_show_instructions(prompt_output_file: Path, merged_prompt:
     print("    Once ready, run 'aisdlc next' again to continue to the next step.")
 
 
-def _handle_next_step_file(next_file: Path, next_step: str, lock: dict[str, Any],
+def _handle_next_step_file(next_file: Path, next_step: str, lock: LockDict,
                           prompt_output_file: Path) -> None:
     """Check if next step file exists and handle accordingly."""
     if next_file.exists():
@@ -110,11 +125,13 @@ def _handle_next_step_file(next_file: Path, next_step: str, lock: dict[str, Any]
         print("    Use the generated prompt with your AI tool, then run 'aisdlc next' again.")
 
 
-def _validate_workflow_state(conf: dict[str, Any], lock: dict[str, Any]) -> tuple[str, int, list[str]]:
+def _validate_workflow_state(conf: ConfigDict, lock: LockDict) -> tuple[str, int, list[str]]:
     """Validate workflow state and return slug, current index, and steps."""
     if not lock:
         print("❌  No active workstream. Run `aisdlc new` first.")
         sys.exit(1)
+
+    assert "slug" in lock and "current" in lock
 
     slug = lock["slug"]
     steps = conf["steps"]
@@ -127,7 +144,9 @@ def _validate_workflow_state(conf: dict[str, Any], lock: dict[str, Any]) -> tupl
     return slug, idx, steps
 
 
-def _prepare_file_paths(conf: dict[str, Any], slug: str, prev_step: str, next_step: str) -> tuple[Path, Path, Path, Path, Path]:
+def _prepare_file_paths(
+    conf: ConfigDict, slug: str, prev_step: str, next_step: str
+) -> tuple[Path, Path, Path, Path, Path]:
     """Prepare and return all required file paths."""
     workdir = ROOT / conf["active_dir"] / slug
     prev_file = workdir / f"{prev_step}-{slug}.md"
@@ -147,8 +166,8 @@ def run_next(args: list[str] | None = None) -> None:
     Raises:
         SystemExit: If no active workstream, all steps complete, or file errors occur
     """
-    conf = load_config()
-    lock = read_lock()
+    conf: ConfigDict = load_config()
+    lock: LockDict = read_lock()
 
     # Validate workflow state
     slug, idx, steps = _validate_workflow_state(conf, lock)
@@ -168,9 +187,15 @@ def run_next(args: list[str] | None = None) -> None:
     merged_prompt = _read_and_merge_content(prev_file, prompt_file)
 
     # Apply Context7 enrichment if enabled
-    merged_prompt = _apply_context7_enrichment(
-        conf, merged_prompt, workdir, steps, idx, slug, next_step
+    context7_config = Context7Config(
+        conf=conf,
+        workdir=workdir,
+        steps=steps,
+        idx=idx,
+        slug=slug,
+        next_step=next_step
     )
+    merged_prompt = _apply_context7_enrichment(context7_config, merged_prompt)
 
     # Write prompt and display instructions
     _write_prompt_and_show_instructions(prompt_output_file, merged_prompt, next_step, next_file)

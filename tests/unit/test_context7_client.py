@@ -1,18 +1,18 @@
+# pyright: reportMissingImports=false
 """Unit tests for Context7 client."""
 
 import asyncio
-import json
 from unittest.mock import AsyncMock, Mock, patch
 
 import httpx
 import pytest
 
 from ai_sdlc.services.context7_client import (
-    Context7Client, 
-    Context7ClientError,
+    CODE_BLOCK_PATTERN,
     Context7AuthError,
+    Context7Client,
+    Context7ClientError,
     Context7TimeoutError,
-    CODE_BLOCK_PATTERN
 )
 
 
@@ -48,13 +48,13 @@ class TestContext7Client:
     def test_api_key_validation(self):
         """Test API key validation logic."""
         client = Context7Client()
-        
+
         # Valid keys
         assert client._is_valid_api_key("valid-test-key-123")
         assert client._is_valid_api_key("abcdefghijklmnop")
         assert client._is_valid_api_key("test_key_with_underscores")
         assert client._is_valid_api_key("test.key.with.dots")
-        
+
         # Invalid keys
         assert not client._is_valid_api_key("")
         assert not client._is_valid_api_key("short")
@@ -72,12 +72,12 @@ class TestContext7Client:
     async def test_async_context_manager(self):
         """Test async context manager functionality."""
         client = Context7Client(api_key="test-key-123456789")
-        
+
         async with client as ctx_client:
             assert ctx_client is client
             assert not client._closed
             assert client._client is not None
-        
+
         assert client._closed
 
     @pytest.mark.asyncio
@@ -96,7 +96,7 @@ class TestContext7Client:
         """Test that using closed client raises error."""
         client = Context7Client(api_key="test-key-123456789")
         client._closed = True
-        
+
         with pytest.raises(Context7ClientError, match="Client is closed"):
             client.resolve_library_id("test")
 
@@ -123,15 +123,15 @@ class TestContext7Client:
         - Trust Score: 9.0
         ----------
         """
-        
+
         results = client._parse_library_results(text)
-        
+
         assert len(results) == 2
         assert results[0]["name"] == "React"
         assert results[0]["libraryId"] == "/facebook/react"
         assert results[0]["codeSnippetCount"] == 150
         assert results[0]["trustScore"] == 9.5
-        
+
         assert results[1]["name"] == "Vue"
         assert results[1]["libraryId"] == "/vuejs/vue"
 
@@ -144,10 +144,10 @@ class TestContext7Client:
         - Trust Score: invalid
         ----------
         """
-        
+
         with patch('ai_sdlc.services.context7_client.logger') as mock_logger:
             results = client._parse_library_results(text)
-            
+
             # Should still parse what it can
             assert len(results) == 0  # No library ID, so not included
             # Should log debug messages for invalid values
@@ -164,7 +164,7 @@ class TestContext7Client:
                 ]
             }
         }
-        
+
         content = client._parse_docs_content(response_data)
         assert content == "First part of docs\nSecond part of docs"
 
@@ -178,10 +178,10 @@ class TestContext7Client:
     async def test_retry_logic_on_timeout(self):
         """Test retry logic handles timeouts correctly."""
         client = Context7Client(api_key="test-key-123456789")
-        
+
         with patch.object(client, '_execute_tool', side_effect=Context7TimeoutError("Timeout")) as mock_execute:
             result = await client._execute_tool_with_retry("test-tool", {})
-            
+
             # Should have tried 3 times (MAX_RETRIES)
             assert mock_execute.call_count == 3
             assert result is None
@@ -190,10 +190,10 @@ class TestContext7Client:
     async def test_no_retry_on_auth_error(self):
         """Test that auth errors are not retried."""
         client = Context7Client(api_key="test-key-123456789")
-        
+
         with patch.object(client, '_execute_tool', side_effect=Context7AuthError("Auth failed")) as mock_execute:
             result = await client._execute_tool_with_retry("test-tool", {})
-            
+
             # Should only try once for auth errors
             assert mock_execute.call_count == 1
             assert result is None
@@ -213,7 +213,7 @@ class TestContext7Client:
                 }]
             }
         }
-        
+
         # Mock the retry method to return our response
         with patch.object(
             client,
@@ -221,7 +221,7 @@ class TestContext7Client:
             new=AsyncMock(return_value=mock_response),
         ) as mock_retry:
             result = client.resolve_library_id("react")
-        
+
         assert result == "/facebook/react"
         mock_retry.assert_called_once_with("resolve-library-id", {"libraryName": "react"})
 
@@ -233,7 +233,7 @@ class TestContext7Client:
 
         def run_until_complete_side_effect(coro):
             asyncio.run(coro)
-            raise asyncio.TimeoutError()
+            raise TimeoutError()
 
         mock_loop.run_until_complete.side_effect = run_until_complete_side_effect
 
@@ -243,7 +243,7 @@ class TestContext7Client:
             new=AsyncMock(return_value=None),
         ):
             result = client.resolve_library_id("test")
-        
+
         assert result is None
         mock_logger.error.assert_called_once()
         mock_loop.close.assert_called_once()
@@ -251,7 +251,7 @@ class TestContext7Client:
     def test_get_client_creates_new(self, client):
         """Test that _get_client creates new client when needed."""
         assert client._client is None
-        
+
         http_client = client._get_client()
         assert http_client is not None
         assert isinstance(http_client, httpx.AsyncClient)
@@ -276,7 +276,7 @@ class TestContext7Client:
         console.log("test");
         ```
         """
-        
+
         parts = CODE_BLOCK_PATTERN.split(text)
         assert len(parts) == 7  # text, lang, code, text, lang, code, text
         assert parts[1] == "python"
@@ -293,7 +293,7 @@ class TestContext7Client:
 
             # Mock stream to timeout
             async def iter_lines():
-                raise asyncio.TimeoutError()
+                raise TimeoutError()
                 yield  # pragma: no cover
 
             mock_stream = Mock()
